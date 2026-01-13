@@ -9,11 +9,11 @@ class CuttingAppMobile {
         this.currentStep = 1;
         this.currentField = 'boardWidth'; // Start with board width
         this.inputValues = {
-            boardWidth: '2400',
+            boardWidth: '2440',
             boardHeight: '1220',
-            width: '',
-            height: '',
-            qty: '1'
+            width: '0',
+            height: '0',
+            qty: '0'
         };
         this.parts = [];
         this.kerf = 4.2; // Optimized blade size
@@ -376,7 +376,12 @@ class CuttingAppMobile {
             const label = labels[field] || '값 입력';
             const labelEl = document.getElementById('keypadFieldLabel');
             if (labelEl) labelEl.textContent = label;
-            this.updateKeypadPreview('');
+
+            const unitEl = document.getElementById('keypadUnit');
+            if (unitEl) {
+                unitEl.textContent = field === 'qty' ? '개' : 'mm';
+            }
+            this.updateKeypadPreview(this.inputValues[field] || '0');
         }
     }
 
@@ -429,6 +434,7 @@ class CuttingAppMobile {
 
     handleKeyPress(key) {
         let currentValue = this.inputValues[this.currentField];
+        if (currentValue === '0') currentValue = ''; // Start fresh if it was '0'
 
         switch (key) {
             case 'C':
@@ -496,9 +502,10 @@ class CuttingAppMobile {
                 break;
         }
 
-        // Update display and preview
-        this.updateInputField(this.currentField, this.inputValues[this.currentField]);
-        this.updateKeypadPreview(this.inputValues[this.currentField]);
+        // Update display and preview (ensure '0' if empty)
+        const finalValue = this.inputValues[this.currentField] || '0';
+        this.updateInputField(this.currentField, finalValue);
+        this.updateKeypadPreview(finalValue);
 
         // Validation warning for Step 2 dimensions
         if (this.currentStep === 2 && (this.currentField === 'width' || this.currentField === 'height')) {
@@ -581,13 +588,14 @@ class CuttingAppMobile {
     }
 
     resetInputFields() {
-        this.inputValues.width = '';
-        this.inputValues.height = '';
-        // Keep qty as is
+        this.inputValues.width = '0';
+        this.inputValues.height = '0';
+        // Keep qty as is or reset to 0? User asked for 0 globally.
+        this.inputValues.qty = '0';
 
-        this.updateInputField('width', '');
-        this.updateInputField('height', '');
-        this.updateInputField('qty', this.inputValues.qty);
+        this.updateInputField('width', '0');
+        this.updateInputField('height', '0');
+        this.updateInputField('qty', '0');
         // Select width but DO NOT OPEN KEYPAD (wait for user)
         this.selectField('width', false, false);
     }

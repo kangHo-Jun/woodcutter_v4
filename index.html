@@ -39,7 +39,7 @@
                 <div class="input-display board-input-row">
                     <div class="input-field active" data-board-field="boardWidth">
                         <span class="field-label">가로</span>
-                        <span class="field-value"><span id="displayBoardWidth">2400</span><span
+                        <span class="field-value"><span id="displayBoardWidth">2440</span><span
                                 class="field-unit">mm</span></span>
                     </div>
                     <div class="input-separator-x">×</div>
@@ -51,7 +51,7 @@
                 </div>
 
                 <!-- Hidden inputs for logic compatibility -->
-                <input type="number" id="boardWidth" value="2400" class="hidden">
+                <input type="number" id="boardWidth" value="2440" class="hidden">
                 <input type="number" id="boardHeight" value="1220" class="hidden">
                 <input type="number" id="boardThickness" value="18" class="hidden">
                 <input type="number" id="kerfInput" value="4.2" class="hidden">
@@ -101,7 +101,7 @@
                     <!-- Width Input -->
                     <div class="input-box-compact" data-field="width">
                         <span class="box-label">가로</span>
-                        <span class="box-value" id="inputWidth">800</span>
+                        <span class="box-value" id="inputWidth">0</span>
                         <span class="box-unit">mm</span>
                     </div>
 
@@ -110,7 +110,7 @@
                     <!-- Height Input -->
                     <div class="input-box-compact" data-field="height">
                         <span class="box-label">세로</span>
-                        <span class="box-value" id="inputHeight">400</span>
+                        <span class="box-value" id="inputHeight">0</span>
                         <span class="box-unit">mm</span>
                     </div>
 
@@ -118,7 +118,7 @@
 
                     <!-- Quantity Input (Keypad) -->
                     <div class="input-box-compact qty-box" data-field="qty">
-                        <span class="box-value" id="inputQty">1</span>
+                        <span class="box-value" id="inputQty">0</span>
                         <span class="box-unit">개</span>
                     </div>
 
@@ -146,7 +146,7 @@
                 <div class="keypad-display-section">
                     <div class="keypad-field-name" id="keypadFieldLabel">가로</div>
                     <div class="keypad-large-value">
-                        <span id="keypadPreview">0</span><span class="unit">mm</span>
+                        <span id="keypadPreview">0</span><span class="unit" id="keypadUnit">mm</span>
                     </div>
                     <div class="validation-warning" id="validationWarning"></div>
                 </div>

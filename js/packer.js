@@ -119,8 +119,11 @@ class SingleBin {
         for (let i = 0; i < this.freeRects.length; i++) {
             const rect = this.freeRects[i];
 
-            // 톱날 두께(Kerf) 고려하여 배치 가능 확인
-            if (rect.width >= width + this.kerf && rect.height >= height + this.kerf) {
+            // 1. Normal orientation
+            const canFitW = rect.width === width || rect.width >= width + this.kerf;
+            const canFitH = rect.height === height || rect.height >= height + this.kerf;
+
+            if (canFitW && canFitH) {
                 const shortSide = Math.min(rect.width - width, rect.height - height);
                 if (shortSide < bestShortSideFit) {
                     bestRect = rect;
@@ -130,13 +133,19 @@ class SingleBin {
                 }
             }
 
-            if (rotatable && rect.width >= height + this.kerf && rect.height >= width + this.kerf) {
-                const shortSide = Math.min(rect.width - height, rect.height - width);
-                if (shortSide < bestShortSideFit) {
-                    bestRect = rect;
-                    bestRectIndex = i;
-                    bestShortSideFit = shortSide;
-                    bestRotated = true;
+            // 2. Rotated orientation
+            if (rotatable) {
+                const canFitRotW = rect.width === height || rect.width >= height + this.kerf;
+                const canFitRotH = rect.height === width || rect.height >= width + this.kerf;
+
+                if (canFitRotW && canFitRotH) {
+                    const shortSide = Math.min(rect.width - height, rect.height - width);
+                    if (shortSide < bestShortSideFit) {
+                        bestRect = rect;
+                        bestRectIndex = i;
+                        bestShortSideFit = shortSide;
+                        bestRotated = true;
+                    }
                 }
             }
         }
@@ -146,7 +155,11 @@ class SingleBin {
         const pW = bestRotated ? height : width;
         const pH = bestRotated ? width : height;
 
-        this.splitFreeRect(bestRectIndex, pW + this.kerf, pH + this.kerf);
+        // Calculate actual space taken including kerf if a cut is made
+        const usedW = (pW === bestRect.width) ? pW : pW + this.kerf;
+        const usedH = (pH === bestRect.height) ? pH : pH + this.kerf;
+
+        this.splitFreeRect(bestRectIndex, usedW, usedH);
 
         return { x: bestRect.x, y: bestRect.y, width: pW, height: pH, rotated: bestRotated };
     }
