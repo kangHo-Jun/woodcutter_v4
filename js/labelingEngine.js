@@ -72,8 +72,10 @@ class LabelingEngine {
      */
     static mapLabelsToPlaced(placedParts, labeledGroups) {
         return placedParts.map(part => {
+            // 정방향 또는 회전된 부품 모두 매칭 (가로/세로 바뀌어도 같은 부품)
             const group = labeledGroups.find(g =>
-                g.width === part.width && g.height === part.height
+                (g.width === part.width && g.height === part.height) ||
+                (g.width === part.height && g.height === part.width)
             );
             return {
                 ...part,
@@ -132,8 +134,10 @@ class LabelingEngine {
      * @returns {string} - 라벨
      */
     static findLabel(width, height, labeledGroups) {
+        // 정방향 또는 회전된 부품 모두 매칭 (가로/세로 바뀌어도 같은 부품)
         const group = labeledGroups.find(g =>
-            g.width === width && g.height === height
+            (g.width === width && g.height === height) ||
+            (g.width === height && g.height === width)
         );
         return group ? group.label : '?';
     }

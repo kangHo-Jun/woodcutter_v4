@@ -8,7 +8,7 @@ class AppState {
         this.boardSpec = {
             width: 2440,
             height: 1220,
-            considerGrain: true
+            considerGrain: false
         };
 
         this.cuttingList = [];
