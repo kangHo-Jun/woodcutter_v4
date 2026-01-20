@@ -9,7 +9,8 @@ PC 중심의 2D 재단 최적화 도구
 python3 -m http.server 8000
 
 # 브라우저에서 접속
-http://localhost:8000/index-pc.html
+# PC 버전 (기본): http://localhost:8000/
+# 모바일 버전: http://localhost:8000/index-mobile.html
 ```
 
 ## ✨ 주요 기능
@@ -21,11 +22,22 @@ http://localhost:8000/index-pc.html
 - 📊 **재단 도면**: Canvas 시각화 + 중복 제거
 - 📄 **PDF 출력**: 한글 완벽 지원
 
+## 📱 버전 정보
+
+### PC 버전 (기본)
+- 파일: `index.html`
+- 2열 레이아웃, 테이블 편집, 고급 기능
+
+### 모바일 버전
+- 파일: `index-mobile.html`
+- 3단계 워크플로우, 커스텀 키패드
+
 ## 📁 프로젝트 구조
 
 ```
 woodcutter_v3/
-├── index-pc.html          # PC 버전 메인
+├── index.html             # PC 버전 (기본)
+├── index-mobile.html      # 모바일 버전
 ├── css/
 │   └── pc-style.css       # Design System
 ├── js/
