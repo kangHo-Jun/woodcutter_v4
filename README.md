@@ -82,8 +82,9 @@ woodcutter_v3/
 - jsPDF 2.5.1
 - Canvas API
 
-## 📝 개발 문서
+## 📝 개발 및 사용자 문서
 
+- [프로그램 사용자 가이드 (Notion 스타일)](docs/USER_MANUAL.md) 🆕
 - [개발 완료 보고서](docs/DEVELOPMENT.md)
 - [Git 설정 가이드](docs/GIT_SETUP.md)
 
