@@ -244,8 +244,8 @@ class StripBin {
                             height: item.height
                         });
 
-                        if (currentX > 0) {
-                            this.cutLinesX.add(x);
+                        if (x + item.width < this.width) {
+                            this.cutLinesX.add(x + item.width);
                         }
 
                         currentX = x + item.width;
@@ -262,8 +262,8 @@ class StripBin {
                     break;
                 }
 
-                if (stripY > 0) {
-                    this.cutLinesY.add(stripY);
+                if (stripY + stripHeight < this.height) {
+                    this.cutLinesY.add(stripY + stripHeight);
                 }
                 this.currentY = stripY + stripHeight;
             }
@@ -350,8 +350,8 @@ class StripEfficiencyBin {
                             height: item.height
                         });
 
-                        if (currentX > 0) {
-                            this.cutLinesX.add(x);
+                        if (x + item.width < this.width) {
+                            this.cutLinesX.add(x + item.width);
                         }
 
                         currentX = x + item.width;
@@ -380,8 +380,8 @@ class StripEfficiencyBin {
                     }
                 }
 
-                if (stripY > 0) {
-                    this.cutLinesY.add(stripY);
+                if (stripY + stripHeight < this.height) {
+                    this.cutLinesY.add(stripY + stripHeight);
                 }
                 currentY = stripY + stripHeight;
             }
@@ -478,8 +478,8 @@ class StripEfficiencyBin {
                         height: item.height
                     });
 
-                    if (bottomX > 0) {
-                        this.cutLinesX.add(x);
+                    if (x + item.width < this.width) {
+                        this.cutLinesX.add(x + item.width);
                     }
 
                     bottomX = x + item.width;
@@ -487,9 +487,12 @@ class StripEfficiencyBin {
                 }
             }
 
-            if (bottomY > 0 && this.placed.some(p => p.y === bottomY)) {
-                this.cutLinesY.add(bottomY);
-            }
+            // 각 부품의 하단 경계면 절단 (기존 stripY+stripHeight 로직과 중복을 피하기 위해 Set이 자동 처리)
+            this.placed.filter(p => p.y === bottomY).forEach(p => {
+                if (p.y + p.height < this.height) {
+                    this.cutLinesY.add(p.y + p.height);
+                }
+            });
         }
 
         const usedArea = this.placed.reduce((sum, p) => sum + p.width * p.height, 0);
