@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대장간 V3 - PC 버전</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/pc-style.css">
+
+    <!-- jsPDF Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- Korean Font for PDF (NanumGothic) -->
+    <script>
+        // PDF 한글 폰트 지원을 위한 설정
+        // 실제 구현은 pdfGenerator.js에서 처리
+    </script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div>
+                <span class="app-title">대장간</span>
+                <span class="app-version">V3 PC</span>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="resetBtn">새 작업</button>
+        </header>
+
+        <!-- Left Panel: Input -->
+        <aside class="input-panel">
+            <!-- 판재 정보 -->
+            <section class="section">
+                <h2 class="section-title">판재 정보</h2>
+                <p class="section-subtitle">재단할 원판의 크기를 입력하세요</p>
+
+                <div class="flex flex-gap-2 mb-4">
+                    <div class="input-group" style="flex: 1; margin-bottom: 0;">
+                        <label class="input-label" for="boardWidth">폭 (mm)</label>
+                        <input type="number" id="boardWidth" class="input" value="2440" min="100" max="5000">
+                    </div>
+
+                    <div class="input-group" style="flex: 1; margin-bottom: 0;">
+                        <label class="input-label" for="boardHeight">높이 (mm)</label>
+                        <input type="number" id="boardHeight" class="input" value="1220" min="100" max="5000">
+                    </div>
+
+                    <div class="input-group" style="flex: 1; margin-bottom: 0;">
+                        <label class="input-label" for="boardThickness">두께 (mm)</label>
+                        <input type="number" id="boardThickness" class="input" value="18" min="1" max="99">
+                    </div>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="considerGrain" class="checkbox">
+                    <label for="considerGrain" class="checkbox-label">나무결 방향 고려</label>
+                </div>
+            </section>
+
+            <!-- 부품 입력 -->
+            <section class="section">
+                <div class="flex-between mb-4">
+                    <h2 class="section-title" style="margin-bottom: 0;">부품 입력</h2>
+                    <button class="btn btn-danger btn-sm" id="clearPartsBtn">전체 삭제</button>
+                </div>
+
+                <div class="card">
+                    <div class="flex flex-gap-2 mb-4">
+                        <div class="input-group" style="flex: 1; margin-bottom: 0;">
+                            <label class="input-label" for="partWidth">폭 (mm)</label>
+                            <input type="number" id="partWidth" class="input" placeholder="폭">
+                        </div>
+                        <div class="input-group" style="flex: 1; margin-bottom: 0;">
+                            <label class="input-label" for="partHeight">높이 (mm)</label>
+                            <input type="number" id="partHeight" class="input" placeholder="높이">
+                        </div>
+                        <div class="input-group" style="flex: 1; margin-bottom: 0;">
+                            <label class="input-label" for="partQty">수량</label>
+                            <input type="number" id="partQty" class="input" value="1" min="1" max="999">
+                        </div>
+                    </div>
+
+                    <div class="checkbox-group mb-4">
+                        <input type="checkbox" id="partRotatable" class="checkbox" checked>
+                        <label for="partRotatable" class="checkbox-label">회전 가능</label>
+                    </div>
+
+                    <button class="btn btn-primary btn-full" id="addPartBtn">부품 추가</button>
+                </div>
+
+                <!-- 부품 목록 테이블 -->
+                <div class="mt-4">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>폭</th>
+                                <th>높이</th>
+                                <th>수량</th>
+                                <th>회전</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="partsTableBody">
+                            <tr class="empty-row">
+                                <td colspan="5" class="empty-state">부품을 추가하세요</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 고급 설정 (Accordion) -->
+            <section class="section">
+                <div class="accordion" id="advancedSettings">
+                    <div class="accordion-header">
+                        <span class="accordion-title">고급 설정</span>
+                        <span class="accordion-icon">▼</span>
+                    </div>
+                    <div class="accordion-body">
+                        <div class="input-group">
+                            <label class="input-label" for="kerfInput">톱날 두께 (mm)</label>
+                            <input type="number" id="kerfInput" class="input" value="4.2" min="0" max="10" step="0.1">
+                        </div>
+
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="enableTrim" class="checkbox">
+                            <label for="enableTrim" class="checkbox-label">트리밍 사용</label>
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label" for="trimMargin">트리밍 여백 (mm)</label>
+                            <input type="number" id="trimMargin" class="input" value="5" min="0" max="50" disabled>
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label" for="cutDirection">절단 방향</label>
+                            <select id="cutDirection" class="select">
+                                <option value="horizontal">가로 우선</option>
+                                <option value="vertical" selected>세로 우선</option>
+                                <option value="auto">자동</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label" for="cutMethod">절단 방식</label>
+                            <select id="cutMethod" class="select">
+                                <option value="guillotine">단두대식</option>
+                                <option value="free">자유 절단</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label" for="optimizationPriority">최적화 우선순위</label>
+                            <select id="optimizationPriority" class="select">
+                                <option value="material">재료 절약</option>
+                                <option value="speed">작업 속도</option>
+                                <option value="balance">균형</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 원가 설정 -->
+            <section class="section">
+                <div class="accordion" id="costSettings">
+                    <div class="accordion-header">
+                        <span class="accordion-title">원가 설정</span>
+                        <span class="accordion-icon">▼</span>
+                    </div>
+                    <div class="accordion-body">
+                        <div class="input-group">
+                            <label class="input-label">절단 단가 (자동 계산)</label>
+                            <div
+                                style="padding: var(--space-3); background: var(--color-bg-secondary); border-radius: var(--radius-md);">
+                                <span id="autoCutPrice">1,500원/회</span>
+                            </div>
+                            <p
+                                style="font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-top: var(--space-2);">
+                                12T 이하: 1,000원 | 14.5~23T: 1,500원 | 24T 이상: 2,000원
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 계산 버튼 -->
+            <button class="btn btn-primary btn-lg btn-full" id="calculateBtn">최적화 계산</button>
+        </aside>
+
+        <!-- Right Panel: Result -->
+        <main class="result-panel">
+            <div id="resultContainer" class="hidden">
+                <!-- 원가 정보 -->
+                <section class="section">
+                    <h2 class="section-title">원가 정보</h2>
+                    <div class="card">
+                        <table class="cost-table">
+                            <tr>
+                                <td>총 재단비</td>
+                                <td id="totalCuttingCost">-</td>
+                            </tr>
+                            <tr>
+                                <td>재단 횟수</td>
+                                <td id="totalCutCount">-</td>
+                            </tr>
+                            <tr>
+                                <td>재료 사용률</td>
+                                <td id="materialUsageRate">-</td>
+                            </tr>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- 부품 그룹 -->
+                <section class="section">
+                    <h2 class="section-title">부품 요약</h2>
+                    <div class="card">
+                        <div id="labelGroupsList"></div>
+                    </div>
+                </section>
+
+                <!-- 재단 도면 -->
+                <section class="section">
+                    <h2 class="section-title">재단 도면</h2>
+                    <div id="canvasListContainer"></div>
+                </section>
+
+                <!-- 출력 버튼 -->
+                <div class="flex flex-gap-4">
+                    <button class="btn btn-secondary btn-lg" id="previewPdfBtn" style="flex: 1;">PDF 미리보기</button>
+                    <button class="btn btn-primary btn-lg" id="downloadPdfBtn" style="flex: 1;">PDF 다운로드</button>
+                </div>
+            </div>
+
+            <!-- 초기 상태 -->
+            <div id="emptyState">
+                <div class="empty-state" style="padding: var(--space-16);">
+                    <p style="font-size: var(--font-size-xl); margin-bottom: var(--space-4);">📐</p>
+                    <p>부품을 추가하고 최적화 계산을 실행하세요</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/state.js"></script>
+    <script src="js/validator.js"></script>
+    <script src="js/costCalculator.js"></script>
+    <script src="js/labelingEngine.js"></script>
+    <script src="js/settingsManager.js"></script>
+    <script src="js/inputHandler.js"></script>
+    <script src="js/packer.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/pdfGenerator.js"></script>
+    <script src="js/main-pc.js"></script>
+</body>
+
+</html>
