@@ -564,9 +564,6 @@ class WoodcutterApp {
 
             if (result.unplaced.length > 0) {
                 alert(`${result.unplaced.length}개의 부품을 배치할 수 없습니다. 부품 크기를 확인하세요.`);
-                calculateBtn.disabled = false;
-                calculateBtn.textContent = originalText;
-                return;
             }
 
             this.state.setResult(result);
@@ -852,11 +849,11 @@ class WoodcutterApp {
         ctx.fillText(`${boardHeight} mm`, 0, 0);
         ctx.restore();
 
-        // === 잔여 영역 표시 추가 (사용자 요청: X > 160) ===
+        // === 잔여 영역 표시 추가 (여유 높이/폭 50mm 이상 표시) ===
         // 1. 하단 잔여량 (Y)
         const maxY = Math.max(...bin.placed.map(part => part.y + part.height), 0);
         const remnantHeight = boardHeight - maxY;
-        if (remnantHeight > 160) {
+        if (remnantHeight >= 50) {
             ctx.save();
             const ry = padding + maxY * drawScale;
             ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
@@ -871,7 +868,7 @@ class WoodcutterApp {
         // 2. 우측 잔여량 (X)
         const maxX = Math.max(...bin.placed.map(part => part.x + part.width), 0);
         const remnantWidth = boardWidth - maxX;
-        if (remnantWidth > 160) {
+        if (remnantWidth >= 50) {
             ctx.save();
             const rx = padding + maxX * drawScale;
             ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';

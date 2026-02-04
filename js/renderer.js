@@ -305,8 +305,8 @@ class CuttingRenderer {
 
         const remnantHeight = binHeight - maxY;
 
-        // 사용자의 조건: 160mm 초과는 표시 (가로폭이 판재 전체인 경우 가정)
-        if (remnantHeight > 160) {
+        // 여유 공간 표시 기준: 높이 50mm 이상 (배치 가능 여부와 무관)
+        if (remnantHeight >= 50) {
             const x = this.padding;
             const y = this.padding + maxY * scale;
             const w = binWidth * scale;

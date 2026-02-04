@@ -341,7 +341,7 @@ class RipReapplyBin {
         const rootRect = { x: 0, y: 0, width: this.width, height: this.height };
 
         // 1단계: 전체 판재에 1차 배치
-        let result = this.packInRect(rootRect, remaining);
+        let result = this.packInRect(rootRect, remaining, { allowAllGroups: false, pairSameWidth: true });
         this.placed.push(...result.placed);
         this.mergeCutLines(result.cutLinesX, result.cutLinesY);
         remaining = result.unplaced;
@@ -361,7 +361,7 @@ class RipReapplyBin {
                     continue;
                 }
 
-                result = this.packInRect(rect, remaining);
+                result = this.packInRect(rect, remaining, { allowAllGroups: true, pairSameWidth: false });
 
                 if (result.placed.length > 0) {
                     placedAny = true;
@@ -397,15 +397,16 @@ class RipReapplyBin {
         yLines.forEach(v => this.cutLinesY.add(v));
     }
 
-    packInRect(rect, items) {
-        const useWidthAxis = rect.width <= rect.height;
+    packInRect(rect, items, options = {}) {
+        // 리핑 방향: 짧은 축(높이)이 기준일 때 폭 스트립 사용
+        const useWidthAxis = rect.height <= rect.width;
         if (useWidthAxis) {
-            return this.packInRectByWidth(rect, items);
+            return this.packInRectByWidth(rect, items, options);
         }
-        return this.packInRectByHeight(rect, items);
+        return this.packInRectByHeight(rect, items, options);
     }
 
-    packInRectByWidth(rect, items) {
+    packInRectByWidth(rect, items, options = {}) {
         const placed = [];
         const cutLinesX = new Set();
         const cutLinesY = new Set();
@@ -438,11 +439,19 @@ class RipReapplyBin {
             }))
             .sort((a, b) => (b.count - a.count) || (b.width - a.width));
 
+        const allowAllGroups = options.allowAllGroups !== false;
+        const pairSameWidth = options.pairSameWidth === true;
+        const effectiveWidths = allowAllGroups ? sortedWidths : sortedWidths.slice(0, 2);
+
         let currentX = rect.x;
 
-        for (const group of sortedWidths) {
-            const stripWidth = group.width;
+        for (const group of effectiveWidths) {
+            const baseWidth = group.width;
             const groupItems = group.items;
+            const canPair = pairSameWidth
+                && groupItems.length >= 2
+                && baseWidth * 2 <= rect.width;
+            const stripWidth = canPair ? baseWidth * 2 : baseWidth;
 
             groupItems.sort((a, b) => b.height - a.height);
 
@@ -454,36 +463,88 @@ class RipReapplyBin {
                 let currentY = rect.y;
                 const placedInStrip = [];
 
-                for (let i = groupItems.length - 1; i >= 0; i--) {
-                    const item = groupItems[i];
-                    const neededHeight = currentY === rect.y ? item.height : item.height + this.kerf;
+                if (canPair) {
+                    const takePair = () => {
+                        for (let i = groupItems.length - 1; i >= 0; i--) {
+                            const first = groupItems[i];
+                            for (let j = i - 1; j >= 0; j--) {
+                                const second = groupItems[j];
+                                if (second.height === first.height) {
+                                    return { first, second, i, j };
+                                }
+                            }
+                        }
+                        return null;
+                    };
 
-                    if (currentY + neededHeight <= rect.y + rect.height) {
+                    while (groupItems.length > 1) {
+                        const pair = takePair();
+                        if (!pair) break;
+
+                        const itemA = pair.first;
+                        const itemB = pair.second;
+                        const neededHeight = currentY === rect.y ? itemA.height : itemA.height + this.kerf;
+
+                        if (currentY + neededHeight > rect.y + rect.height) break;
+
                         const y = currentY === rect.y ? rect.y : currentY + this.kerf;
 
                         placed.push({
-                            ...item,
+                            ...itemA,
                             x: stripX,
                             y: y,
-                            width: item.width,
-                            height: item.height
+                            width: itemA.width,
+                            height: itemA.height
                         });
-                        placedIds.add(item.id);
+                        placed.push({
+                            ...itemB,
+                            x: stripX + itemA.width,
+                            y: y,
+                            width: itemB.width,
+                            height: itemB.height
+                        });
 
-                        if (y + item.height < rect.y + rect.height) {
-                            cutLinesY.add(y + item.height);
+                        placedIds.add(itemA.id);
+                        placedIds.add(itemB.id);
+
+                        if (y + itemA.height < rect.y + rect.height) {
+                            cutLinesY.add(y + itemA.height);
                         }
 
-                        currentY = y + item.height;
-                        placedInStrip.push(i);
+                        currentY = y + itemA.height;
+                        placedInStrip.push(pair.i, pair.j);
+                    }
+                } else {
+                    for (let i = groupItems.length - 1; i >= 0; i--) {
+                        const item = groupItems[i];
+                        const neededHeight = currentY === rect.y ? item.height : item.height + this.kerf;
+
+                        if (currentY + neededHeight <= rect.y + rect.height) {
+                            const y = currentY === rect.y ? rect.y : currentY + this.kerf;
+
+                            placed.push({
+                                ...item,
+                                x: stripX,
+                                y: y,
+                                width: item.width,
+                                height: item.height
+                            });
+                            placedIds.add(item.id);
+
+                            if (y + item.height < rect.y + rect.height) {
+                                cutLinesY.add(y + item.height);
+                            }
+
+                            currentY = y + item.height;
+                            placedInStrip.push(i);
+                        }
                     }
                 }
 
                 if (placedInStrip.length === 0) break;
-
-                for (let i = 0; i < placedInStrip.length; i++) {
-                    groupItems.splice(placedInStrip[i], 1);
-                }
+                const beforeCount = groupItems.length;
+                groupItems = groupItems.filter(item => !placedIds.has(item.id));
+                if (groupItems.length === beforeCount) break;
 
                 if (stripX + stripWidth < rect.x + rect.width) {
                     cutLinesX.add(stripX + stripWidth);
@@ -527,7 +588,7 @@ class RipReapplyBin {
         };
     }
 
-    packInRectByHeight(rect, items) {
+    packInRectByHeight(rect, items, options = {}) {
         const placed = [];
         const cutLinesX = new Set();
         const cutLinesY = new Set();
@@ -560,9 +621,12 @@ class RipReapplyBin {
             }))
             .sort((a, b) => (b.count - a.count) || (b.height - a.height));
 
+        const allowAllGroups = options.allowAllGroups !== false;
+        const effectiveHeights = allowAllGroups ? sortedHeights : sortedHeights.slice(0, 2);
+
         let currentY = rect.y;
 
-        for (const group of sortedHeights) {
+        for (const group of effectiveHeights) {
             const stripHeight = group.height;
             const groupItems = group.items;
 
