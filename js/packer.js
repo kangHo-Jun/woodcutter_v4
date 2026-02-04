@@ -22,31 +22,24 @@ class GuillotinePacker {
             return this.packHorizontal(items);
         }
 
-        // auto: 두 알고리즘 비교
-        const resultA = this.packHorizontal(items);
-        const resultB = this.packStripEfficiency(items);
-
-        // 판재 수 비교: 스트립효율이 적으면 스트립효율, 아니면 가로우선
-        if (resultB.bins.length < resultA.bins.length) {
-            resultB.mode = 'strip-efficiency';
-            return resultB;
-        }
-        resultA.mode = 'horizontal';
-        return resultA;
+        // auto: 2단계 리핑-재적용 전략
+        const result = this.packRipReapply(items);
+        result.mode = 'rip-reapply';
+        return result;
     }
 
     /**
      * 가로 우선 (Strip-based) - 절단 편리
      */
     packHorizontal(items) {
-        const expandedItems = this.expandItems(items, true);
+        const expandedItems = this.expandItems(items, false);
 
         const bins = [];
         let remainingItems = [...expandedItems];
 
         while (remainingItems.length > 0) {
-            const bin = new StripBin(this.binWidth, this.binHeight, this.kerf);
-            const result = bin.packStrips(remainingItems);
+            const bin = new WidthStripBin(this.binWidth, this.binHeight, this.kerf);
+            const result = bin.packWidthStrips(remainingItems);
 
             if (result.placed.length === 0) break;
 
@@ -59,6 +52,34 @@ class GuillotinePacker {
             unplaced: remainingItems,
             totalEfficiency: this.calculateTotalEfficiency(bins),
             mode: 'horizontal'
+        };
+    }
+
+    /**
+     * 2단계 리핑-재적용 (Auto)
+     * - 1단계: 전체 판재에 폭 스트립 배치
+     * - 2단계: 남은 직사각형 잔여에 동일 로직 재적용
+     */
+    packRipReapply(items) {
+        const expandedItems = this.expandItems(items, false);
+        const bins = [];
+        let remainingItems = [...expandedItems];
+
+        while (remainingItems.length > 0) {
+            const bin = new RipReapplyBin(this.binWidth, this.binHeight, this.kerf);
+            const result = bin.pack(remainingItems);
+
+            if (result.placed.length === 0) break;
+
+            bins.push(result);
+            remainingItems = result.unplaced;
+        }
+
+        return {
+            bins,
+            unplaced: remainingItems,
+            totalEfficiency: this.calculateTotalEfficiency(bins),
+            mode: 'rip-reapply'
         };
     }
 
@@ -183,6 +204,453 @@ class GuillotinePacker {
 }
 
 /**
+ * Width-based Strip Bin (가로우선: 동일 폭 스트립)
+ * 높이 방향(짧은 쪽)으로 리핑 후 크로스컷
+ */
+class WidthStripBin {
+    constructor(width, height, kerf) {
+        this.width = width;
+        this.height = height;
+        this.kerf = kerf;
+        this.placed = [];
+        this.cutLinesX = new Set();
+        this.cutLinesY = new Set();
+    }
+
+    packWidthStrips(items) {
+        const unplaced = [];
+
+        // 폭별 그룹화 (동일 폭만 같은 스트립)
+        const widthGroups = {};
+        items.forEach(original => {
+            const item = { ...original };
+            if (item.rotatable) {
+                const fits = item.width <= this.width && item.height <= this.height;
+                const fitsRotated = item.height <= this.width && item.width <= this.height;
+                if (!fits && fitsRotated) {
+                    [item.width, item.height] = [item.height, item.width];
+                    item.rotated = !item.rotated;
+                }
+            }
+            if (item.width > this.width || item.height > this.height) {
+                unplaced.push({ ...original });
+                return;
+            }
+            const w = item.width;
+            if (!widthGroups[w]) widthGroups[w] = [];
+            widthGroups[w].push(item);
+        });
+
+        // 폭 빈도 내림차순, 동일 빈도면 폭 큰 순
+        const sortedWidths = Object.entries(widthGroups)
+            .map(([width, itemsForWidth]) => ({
+                width: parseFloat(width),
+                items: itemsForWidth,
+                count: itemsForWidth.length
+            }))
+            .sort((a, b) => (b.count - a.count) || (b.width - a.width));
+
+        let currentX = 0;
+
+        for (const group of sortedWidths) {
+            const stripWidth = group.width;
+            const groupItems = group.items;
+
+            // 높이 큰 순 정렬 (배치는 작은 것부터)
+            groupItems.sort((a, b) => b.height - a.height);
+
+            while (groupItems.length > 0) {
+                const neededWidth = currentX === 0 ? stripWidth : stripWidth + this.kerf;
+                if (currentX + neededWidth > this.width) break;
+
+                const stripX = currentX === 0 ? 0 : currentX + this.kerf;
+                let currentY = 0;
+                const placedInStrip = [];
+
+                for (let i = groupItems.length - 1; i >= 0; i--) {
+                    const item = groupItems[i];
+                    const neededHeight = currentY === 0 ? item.height : item.height + this.kerf;
+
+                    if (currentY + neededHeight <= this.height) {
+                        const y = currentY === 0 ? 0 : currentY + this.kerf;
+
+                        this.placed.push({
+                            ...item,
+                            x: stripX,
+                            y: y,
+                            width: item.width,
+                            height: item.height
+                        });
+
+                        if (y + item.height < this.height) {
+                            this.cutLinesY.add(y + item.height);
+                        }
+
+                        currentY = y + item.height;
+                        placedInStrip.push(i);
+                    }
+                }
+
+                if (placedInStrip.length === 0) break;
+
+                for (let i = 0; i < placedInStrip.length; i++) {
+                    groupItems.splice(placedInStrip[i], 1);
+                }
+
+                if (stripX + stripWidth < this.width) {
+                    this.cutLinesX.add(stripX + stripWidth);
+                }
+
+                currentX = stripX + stripWidth;
+            }
+
+            if (groupItems.length > 0) {
+                unplaced.push(...groupItems);
+            }
+        }
+
+        const usedArea = this.placed.reduce((sum, p) => sum + p.width * p.height, 0);
+        const totalArea = this.width * this.height;
+
+        return {
+            placed: this.placed,
+            unplaced,
+            efficiency: (usedArea / totalArea) * 100,
+            usedArea,
+            totalArea,
+            cuttingCount: this.cutLinesX.size + this.cutLinesY.size
+        };
+    }
+}
+
+/**
+ * 2단계 리핑-재적용 Bin
+ */
+class RipReapplyBin {
+    constructor(width, height, kerf) {
+        this.width = width;
+        this.height = height;
+        this.kerf = kerf;
+        this.placed = [];
+        this.cutLinesX = new Set();
+        this.cutLinesY = new Set();
+    }
+
+    pack(items) {
+        let remaining = items.map(i => ({ ...i }));
+        const rootRect = { x: 0, y: 0, width: this.width, height: this.height };
+
+        // 1단계: 전체 판재에 1차 배치
+        let result = this.packInRect(rootRect, remaining);
+        this.placed.push(...result.placed);
+        this.mergeCutLines(result.cutLinesX, result.cutLinesY);
+        remaining = result.unplaced;
+
+        let freeRects = result.freeRects;
+
+        // 2단계: 잔여 영역에 재적용 (추가 배치가 없으면 중단)
+        while (true) {
+            let placedAny = false;
+            const nextFreeRects = [];
+
+            freeRects.sort((a, b) => (b.width * b.height) - (a.width * a.height));
+
+            for (const rect of freeRects) {
+                if (remaining.length === 0) {
+                    nextFreeRects.push(rect);
+                    continue;
+                }
+
+                result = this.packInRect(rect, remaining);
+
+                if (result.placed.length > 0) {
+                    placedAny = true;
+                    this.placed.push(...result.placed);
+                    this.mergeCutLines(result.cutLinesX, result.cutLinesY);
+                    remaining = result.unplaced;
+                    nextFreeRects.push(...result.freeRects);
+                } else {
+                    nextFreeRects.push(rect);
+                }
+            }
+
+            freeRects = nextFreeRects;
+
+            if (!placedAny) break;
+        }
+
+        const usedArea = this.placed.reduce((sum, p) => sum + p.width * p.height, 0);
+        const totalArea = this.width * this.height;
+
+        return {
+            placed: this.placed,
+            unplaced: remaining,
+            efficiency: (usedArea / totalArea) * 100,
+            usedArea,
+            totalArea,
+            cuttingCount: this.cutLinesX.size + this.cutLinesY.size
+        };
+    }
+
+    mergeCutLines(xLines, yLines) {
+        xLines.forEach(v => this.cutLinesX.add(v));
+        yLines.forEach(v => this.cutLinesY.add(v));
+    }
+
+    packInRect(rect, items) {
+        const useWidthAxis = rect.width <= rect.height;
+        if (useWidthAxis) {
+            return this.packInRectByWidth(rect, items);
+        }
+        return this.packInRectByHeight(rect, items);
+    }
+
+    packInRectByWidth(rect, items) {
+        const placed = [];
+        const cutLinesX = new Set();
+        const cutLinesY = new Set();
+        const freeRects = [];
+        const placedIds = new Set();
+
+        const widthGroups = {};
+
+        items.forEach(original => {
+            const item = { ...original };
+            if (item.rotatable) {
+                const fits = item.width <= rect.width && item.height <= rect.height;
+                const fitsRotated = item.height <= rect.width && item.width <= rect.height;
+                if (!fits && fitsRotated) {
+                    [item.width, item.height] = [item.height, item.width];
+                    item.rotated = !item.rotated;
+                }
+            }
+            if (item.width > rect.width || item.height > rect.height) return;
+            const w = item.width;
+            if (!widthGroups[w]) widthGroups[w] = [];
+            widthGroups[w].push(item);
+        });
+
+        const sortedWidths = Object.entries(widthGroups)
+            .map(([width, groupItems]) => ({
+                width: parseFloat(width),
+                items: groupItems,
+                count: groupItems.length
+            }))
+            .sort((a, b) => (b.count - a.count) || (b.width - a.width));
+
+        let currentX = rect.x;
+
+        for (const group of sortedWidths) {
+            const stripWidth = group.width;
+            const groupItems = group.items;
+
+            groupItems.sort((a, b) => b.height - a.height);
+
+            while (groupItems.length > 0) {
+                const neededWidth = currentX === rect.x ? stripWidth : stripWidth + this.kerf;
+                if (currentX + neededWidth > rect.x + rect.width) break;
+
+                const stripX = currentX === rect.x ? rect.x : currentX + this.kerf;
+                let currentY = rect.y;
+                const placedInStrip = [];
+
+                for (let i = groupItems.length - 1; i >= 0; i--) {
+                    const item = groupItems[i];
+                    const neededHeight = currentY === rect.y ? item.height : item.height + this.kerf;
+
+                    if (currentY + neededHeight <= rect.y + rect.height) {
+                        const y = currentY === rect.y ? rect.y : currentY + this.kerf;
+
+                        placed.push({
+                            ...item,
+                            x: stripX,
+                            y: y,
+                            width: item.width,
+                            height: item.height
+                        });
+                        placedIds.add(item.id);
+
+                        if (y + item.height < rect.y + rect.height) {
+                            cutLinesY.add(y + item.height);
+                        }
+
+                        currentY = y + item.height;
+                        placedInStrip.push(i);
+                    }
+                }
+
+                if (placedInStrip.length === 0) break;
+
+                for (let i = 0; i < placedInStrip.length; i++) {
+                    groupItems.splice(placedInStrip[i], 1);
+                }
+
+                if (stripX + stripWidth < rect.x + rect.width) {
+                    cutLinesX.add(stripX + stripWidth);
+                }
+
+                const bottomY = currentY + this.kerf;
+                const bottomHeight = rect.y + rect.height - bottomY;
+                if (bottomHeight > 0) {
+                    freeRects.push({
+                        x: stripX,
+                        y: bottomY,
+                        width: stripWidth,
+                        height: bottomHeight
+                    });
+                }
+
+                currentX = stripX + stripWidth;
+            }
+
+        }
+
+        const rightX = currentX === rect.x ? rect.x : currentX + this.kerf;
+        const rightWidth = rect.x + rect.width - rightX;
+        if (rightWidth > 0) {
+            freeRects.push({
+                x: rightX,
+                y: rect.y,
+                width: rightWidth,
+                height: rect.height
+            });
+        }
+
+        const unplaced = items.filter(item => !placedIds.has(item.id));
+
+        return {
+            placed,
+            unplaced,
+            freeRects,
+            cutLinesX,
+            cutLinesY
+        };
+    }
+
+    packInRectByHeight(rect, items) {
+        const placed = [];
+        const cutLinesX = new Set();
+        const cutLinesY = new Set();
+        const freeRects = [];
+        const placedIds = new Set();
+
+        const heightGroups = {};
+
+        items.forEach(original => {
+            const item = { ...original };
+            if (item.rotatable) {
+                const fits = item.width <= rect.width && item.height <= rect.height;
+                const fitsRotated = item.height <= rect.width && item.width <= rect.height;
+                if (!fits && fitsRotated) {
+                    [item.width, item.height] = [item.height, item.width];
+                    item.rotated = !item.rotated;
+                }
+            }
+            if (item.width > rect.width || item.height > rect.height) return;
+            const h = item.height;
+            if (!heightGroups[h]) heightGroups[h] = [];
+            heightGroups[h].push(item);
+        });
+
+        const sortedHeights = Object.entries(heightGroups)
+            .map(([height, groupItems]) => ({
+                height: parseFloat(height),
+                items: groupItems,
+                count: groupItems.length
+            }))
+            .sort((a, b) => (b.count - a.count) || (b.height - a.height));
+
+        let currentY = rect.y;
+
+        for (const group of sortedHeights) {
+            const stripHeight = group.height;
+            const groupItems = group.items;
+
+            groupItems.sort((a, b) => b.width - a.width);
+
+            while (groupItems.length > 0) {
+                const neededHeight = currentY === rect.y ? stripHeight : stripHeight + this.kerf;
+                if (currentY + neededHeight > rect.y + rect.height) break;
+
+                const stripY = currentY === rect.y ? rect.y : currentY + this.kerf;
+                let currentX = rect.x;
+                const placedInStrip = [];
+
+                for (let i = groupItems.length - 1; i >= 0; i--) {
+                    const item = groupItems[i];
+                    const neededWidth = currentX === rect.x ? item.width : item.width + this.kerf;
+
+                    if (currentX + neededWidth <= rect.x + rect.width) {
+                        const x = currentX === rect.x ? rect.x : currentX + this.kerf;
+
+                        placed.push({
+                            ...item,
+                            x: x,
+                            y: stripY,
+                            width: item.width,
+                            height: item.height
+                        });
+                        placedIds.add(item.id);
+
+                        if (x + item.width < rect.x + rect.width) {
+                            cutLinesX.add(x + item.width);
+                        }
+
+                        currentX = x + item.width;
+                        placedInStrip.push(i);
+                    }
+                }
+
+                if (placedInStrip.length === 0) break;
+
+                for (let i = 0; i < placedInStrip.length; i++) {
+                    groupItems.splice(placedInStrip[i], 1);
+                }
+
+                if (stripY + stripHeight < rect.y + rect.height) {
+                    cutLinesY.add(stripY + stripHeight);
+                }
+
+                const rightX = currentX === rect.x ? rect.x : currentX + this.kerf;
+                const rightWidth = rect.x + rect.width - rightX;
+                if (rightWidth > 0) {
+                    freeRects.push({
+                        x: rightX,
+                        y: stripY,
+                        width: rightWidth,
+                        height: stripHeight
+                    });
+                }
+
+                currentY = stripY + stripHeight;
+            }
+
+        }
+
+        const bottomY = currentY === rect.y ? rect.y : currentY + this.kerf;
+        const bottomHeight = rect.y + rect.height - bottomY;
+        if (bottomHeight > 0) {
+            freeRects.push({
+                x: rect.x,
+                y: bottomY,
+                width: rect.width,
+                height: bottomHeight
+            });
+        }
+
+        const unplaced = items.filter(item => !placedIds.has(item.id));
+
+        return {
+            placed,
+            unplaced,
+            freeRects,
+            cutLinesX,
+            cutLinesY
+        };
+    }
+}
+
+/**
  * Strip-based Bin (가로 우선)
  */
 class StripBin {
@@ -253,7 +721,7 @@ class StripBin {
                     }
                 }
 
-                for (let i = placedInStrip.length - 1; i >= 0; i--) {
+                for (let i = 0; i < placedInStrip.length; i++) {
                     groupItems.splice(placedInStrip[i], 1);
                 }
 
@@ -361,7 +829,7 @@ class StripEfficiencyBin {
                 }
 
                 // 배치된 항목 제거
-                for (let i = placedInStrip.length - 1; i >= 0; i--) {
+                for (let i = 0; i < placedInStrip.length; i++) {
                     groupItems.splice(placedInStrip[i], 1);
                 }
 

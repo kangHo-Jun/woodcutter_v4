@@ -1271,7 +1271,8 @@ class WoodcutterApp {
             document.getElementById('totalPanelCount').textContent = '-';
             document.getElementById('totalCutCount').textContent = '-';
             document.getElementById('totalCuttingCost').textContent = '-';
-            document.getElementById('materialUsageRate').textContent = '-';
+            const materialUsageRate = document.getElementById('materialUsageRate');
+            if (materialUsageRate) materialUsageRate.textContent = '-';
 
             const labelGroupsList = document.getElementById('labelGroupsList');
             if (labelGroupsList) {
