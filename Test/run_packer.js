@@ -23,10 +23,26 @@ const defaultScenarios = [
         parts: [{ width: 400, height: 300, qty: 35, rotatable: true }]
     },
     {
+        name: 'tc1-sketch1-band-auto',
+        board: { width: 1220, height: 2440, kerf: 4.2 },
+        mode: 'auto',
+        parts: [{ width: 400, height: 300, qty: 35, rotatable: true }]
+    },
+    {
         name: 'case-2-400x300-35-auto',
         board: { width: 1220, height: 2440, kerf: 4.2 },
         mode: 'auto',
         parts: [{ width: 400, height: 300, qty: 35, rotatable: true }]
+    },
+    {
+        name: 'tc2-sketch2-band-auto',
+        board: { width: 1220, height: 2440, kerf: 4.2 },
+        mode: 'auto',
+        parts: [
+            { width: 1000, height: 800, qty: 9, rotatable: true },
+            { width: 910, height: 650, qty: 9, rotatable: true },
+            { width: 530, height: 450, qty: 9, rotatable: true }
+        ]
     },
     {
         name: 'case-3-mixed-auto',

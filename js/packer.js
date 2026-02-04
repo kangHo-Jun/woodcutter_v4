@@ -22,9 +22,8 @@ class GuillotinePacker {
             return this.packHorizontal(items);
         }
 
-        // auto: 2단계 리핑-재적용 전략
-        const result = this.packRipReapply(items);
-        result.mode = 'rip-reapply';
+        // auto: 단일 모드 Band 기반 (Full-Pass Level)
+        const result = this.packBandSingleMode(items);
         return result;
     }
 
@@ -214,6 +213,98 @@ class GuillotinePacker {
         const totalArea = bins.reduce((sum, b) => sum + b.totalArea, 0);
         return (totalUsed / totalArea) * 100;
     }
+
+    packBandSingleMode(items) {
+        const baseOptions = {
+            topK: 5,
+            lambda: 0.4,
+            tailUtilizationThreshold: 0.55,
+            maxRetries: 3,
+            sliverFactor: 1.0,
+            debug: false
+        };
+
+        let bestResult = this.runBandSingleMode(items, baseOptions);
+        bestResult.mode = 'band-single';
+
+        if (bestResult.totalEfficiency >= 60 || bestResult.unplaced.length === 0) {
+            return bestResult;
+        }
+
+        // 파라미터 스윕 (1~2회)
+        const sweepOptions = [
+            { lambda: 0.2 },
+            { lambda: 0.6 }
+        ];
+
+        for (const override of sweepOptions) {
+            const sweepResult = this.runBandSingleMode(items, { ...baseOptions, ...override });
+            sweepResult.mode = 'band-single-sweep';
+
+            if (sweepResult.totalEfficiency > bestResult.totalEfficiency) {
+                bestResult = sweepResult;
+            }
+        }
+
+        if (bestResult.totalEfficiency >= 60) {
+            return bestResult;
+        }
+
+        // 보수적 단일 모드
+        const conservative = this.runBandSingleMode(items, {
+            ...baseOptions,
+            topK: 2,
+            sliverFactor: 1.2
+        });
+        conservative.mode = 'band-single-conservative';
+
+        if (conservative.totalEfficiency > bestResult.totalEfficiency) {
+            bestResult = conservative;
+        }
+
+        if (bestResult.totalEfficiency >= 60) {
+            return bestResult;
+        }
+
+        // 최후: 가로 우선으로 롤백
+        const fallback = this.packHorizontal(items);
+        fallback.mode = 'horizontal-fallback';
+        fallback.fallbackFrom = 'band-single';
+        return fallback;
+    }
+
+    runBandSingleMode(items, options) {
+        const expandedItems = this.expandItems(items, false);
+        const bins = [];
+        let remainingItems = [...expandedItems];
+        const debugLogs = [];
+
+        while (remainingItems.length > 0) {
+            const bin = new BandSingleModeBin(this.binWidth, this.binHeight, this.kerf, options);
+            const result = bin.pack(remainingItems);
+
+            if (result.placed.length === 0) break;
+
+            bins.push(result);
+            remainingItems = result.unplaced;
+            if (result.debug && result.debug.length > 0) {
+                debugLogs.push(...result.debug);
+            }
+        }
+
+        const finalResult = {
+            bins,
+            unplaced: remainingItems,
+            totalEfficiency: this.calculateTotalEfficiency(bins),
+            mode: 'band-single'
+        };
+
+        if (debugLogs.length > 0) {
+            finalResult.debug = debugLogs;
+        }
+
+        return finalResult;
+    }
 }
 
 /**
@@ -228,6 +319,8 @@ class WidthStripBin {
         this.placed = [];
         this.cutLinesX = new Set();
         this.cutLinesY = new Set();
+        this.strips = [];
+        this.lastStripEnd = 0;
     }
 
     packWidthStrips(items) {
@@ -264,6 +357,8 @@ class WidthStripBin {
             .sort((a, b) => (b.count - a.count) || (b.width - a.width));
 
         let currentX = 0;
+        this.strips = [];
+        this.lastStripEnd = 0;
 
         for (const group of sortedWidths) {
             const stripWidth = group.width;
@@ -310,11 +405,18 @@ class WidthStripBin {
                     groupItems.splice(placedInStrip[i], 1);
                 }
 
+                this.strips.push({
+                    x: stripX,
+                    width: stripWidth,
+                    usedHeight: currentY
+                });
+
                 if (stripX + stripWidth < this.width) {
                     this.cutLinesX.add(stripX + stripWidth);
                 }
 
                 currentX = stripX + stripWidth;
+                this.lastStripEnd = currentX;
             }
 
             if (groupItems.length > 0) {
@@ -333,6 +435,104 @@ class WidthStripBin {
             totalArea,
             cuttingCount: this.cutLinesX.size + this.cutLinesY.size
         };
+    }
+
+    collectFreeRects() {
+        const rects = [];
+
+        // Strip 상단의 남는 공간
+        this.strips.forEach(strip => {
+            const freeY = strip.usedHeight + (strip.usedHeight === 0 ? 0 : this.kerf);
+            const freeHeight = this.height - freeY;
+            if (freeHeight > 0) {
+                rects.push({
+                    x: strip.x,
+                    y: freeY,
+                    width: strip.width,
+                    height: freeHeight
+                });
+            }
+        });
+
+        // 우측 남는 공간
+        const startX = this.lastStripEnd + (this.lastStripEnd === 0 ? 0 : this.kerf);
+        if (startX < this.width) {
+            rects.push({
+                x: startX,
+                y: 0,
+                width: this.width - startX,
+                height: this.height
+            });
+        }
+
+        return rects;
+    }
+
+    fillFreeRects(freeRects, items) {
+        const remaining = [...items];
+        const placed = [];
+
+        // 큰 것 우선
+        remaining.sort((a, b) => (b.width * b.height) - (a.width * a.height));
+
+        for (const rect of freeRects) {
+            let x = rect.x;
+            let y = rect.y;
+            let rowHeight = 0;
+
+            for (let i = 0; i < remaining.length; i++) {
+                const item = remaining[i];
+                const orientations = [{ w: item.width, h: item.height, rotated: false }];
+                if (item.rotatable) {
+                    orientations.push({ w: item.height, h: item.width, rotated: true });
+                }
+
+                let placedItem = null;
+                for (const orient of orientations) {
+                    if (x + orient.w <= rect.x + rect.width && y + orient.h <= rect.y + rect.height) {
+                        placedItem = { ...item, width: orient.w, height: orient.h, rotated: orient.rotated };
+                        break;
+                    }
+
+                    // 다음 줄로 이동 후 재시도
+                    if (rowHeight > 0) {
+                        const nextY = y + rowHeight + this.kerf;
+                        if (nextY + orient.h <= rect.y + rect.height &&
+                            rect.x + orient.w <= rect.x + rect.width) {
+                            x = rect.x;
+                            y = nextY;
+                            rowHeight = 0;
+                            placedItem = { ...item, width: orient.w, height: orient.h, rotated: orient.rotated };
+                            break;
+                        }
+                    }
+                }
+
+                if (!placedItem) {
+                    continue;
+                }
+
+                this.placed.push({
+                    ...placedItem,
+                    x,
+                    y
+                });
+                placed.push(placedItem);
+
+                const cutX = x + placedItem.width;
+                const cutY = y + placedItem.height;
+                if (cutX < this.width) this.cutLinesX.add(cutX);
+                if (cutY < this.height) this.cutLinesY.add(cutY);
+
+                x = x + placedItem.width + this.kerf;
+                rowHeight = Math.max(rowHeight, placedItem.height);
+
+                remaining.splice(i, 1);
+                i -= 1;
+            }
+        }
+
+        return { unplaced: remaining, placed };
     }
 }
 
@@ -763,6 +963,397 @@ class RipReapplyBin {
             cutLinesX,
             cutLinesY
         };
+    }
+}
+
+/**
+ * Band 기반 단일 모드 Bin
+ * - 가로 절단은 Band 경계에서만 관통
+ * - Band 내부는 세로(Rip) 분할만 허용
+ */
+class BandSingleModeBin {
+    constructor(width, height, kerf, options = {}) {
+        this.width = width;
+        this.height = height;
+        this.kerf = kerf;
+        this.options = {
+            topK: options.topK ?? 5,
+            lambda: options.lambda ?? 0.4,
+            tailUtilizationThreshold: options.tailUtilizationThreshold ?? 0.55,
+            maxRetries: options.maxRetries ?? 3,
+            sliverFactor: options.sliverFactor ?? 1.0,
+            debug: options.debug ?? false
+        };
+        this.placed = [];
+        this.cutLinesX = new Set();
+        this.cutLinesY = new Set();
+        this.debugLogs = [];
+    }
+
+    pack(items) {
+        let remaining = [...items];
+        let currentY = 0;
+        let lastBandInfo = null;
+        let retryCount = 0;
+        const bandHistory = [];
+
+        while (remaining.length > 0) {
+            const bandStartY = currentY === 0 ? 0 : currentY + this.kerf;
+            const availableHeight = this.height - bandStartY;
+            if (availableHeight <= 0) break;
+
+            const snapshot = {
+                remaining: [...remaining],
+                placed: [...this.placed],
+                cutLinesX: new Set(this.cutLinesX),
+                cutLinesY: new Set(this.cutLinesY),
+                bandStartY,
+                availableHeight
+            };
+
+            const bandResult = this.selectAndPlaceBand(remaining, bandStartY, availableHeight);
+            if (!bandResult || bandResult.placed.length === 0) break;
+
+            this.placed.push(...bandResult.placed);
+            this.recordCutLines(bandResult.placed, bandStartY + bandResult.height);
+
+            remaining = bandResult.unplaced;
+            currentY = bandStartY + bandResult.height;
+
+            lastBandInfo = bandResult;
+            bandHistory.push({
+                snapshot,
+                selectedHeight: bandResult.height,
+                result: bandResult
+            });
+
+            // Tail Retry 트리거는 루프 종료 후 처리
+            if (currentY >= this.height) break;
+        }
+
+        // Tail Retry: 마지막 1개 Band만 재시도
+        if (lastBandInfo && retryCount < this.options.maxRetries) {
+            const tailTriggered = this.isTailTriggered(lastBandInfo);
+            if (tailTriggered) {
+                const retryResult = this.retryLastBand(bandHistory, retryCount);
+                if (retryResult && retryResult.placed.length >= this.placed.length) {
+                    this.placed = retryResult.placed;
+                    remaining = retryResult.unplaced;
+                    this.cutLinesX = retryResult.cutLinesX;
+                    this.cutLinesY = retryResult.cutLinesY;
+                    if (retryResult.debug && retryResult.debug.length > 0) {
+                        this.debugLogs.push(...retryResult.debug);
+                    }
+                }
+            }
+        }
+
+        const usedArea = this.placed.reduce((sum, p) => sum + p.width * p.height, 0);
+        const totalArea = this.width * this.height;
+
+        return {
+            placed: this.placed,
+            unplaced: remaining,
+            efficiency: (usedArea / totalArea) * 100,
+            usedArea,
+            totalArea,
+            cuttingCount: this.cutLinesX.size + this.cutLinesY.size,
+            debug: this.debugLogs
+        };
+    }
+
+    selectAndPlaceBand(items, bandStartY, availableHeight) {
+        const candidates = this.getBandHeightCandidates(items, availableHeight);
+        if (candidates.length === 0) return null;
+
+        const candidateLogs = [];
+        let best = null;
+
+        for (const height of candidates) {
+            const placement = this.placeBand(items, height, bandStartY, availableHeight);
+            if (!placement || placement.invalid) continue;
+
+            const baseScore = this.scoreBandLexValue(placement.metrics);
+            const lookahead = this.bestNextApprox(placement.unplaced, availableHeight - height);
+            const totalScore = baseScore + this.options.lambda * lookahead;
+
+            candidateLogs.push({
+                height,
+                metrics: placement.metrics,
+                baseScore,
+                lookahead,
+                totalScore
+            });
+
+            if (!best || totalScore > best.totalScore) {
+                best = {
+                    height,
+                    placement,
+                    totalScore
+                };
+            }
+        }
+
+        if (!best) return null;
+
+        if (this.options.debug) {
+            this.debugLogs.push({
+                type: 'band-select',
+                bandStartY,
+                candidates: candidateLogs,
+                selectedHeight: best.height
+            });
+        }
+
+        return {
+            ...best.placement,
+            height: best.height
+        };
+    }
+
+    getBandHeightCandidates(items, availableHeight) {
+        const heights = new Set();
+
+        items.forEach(item => {
+            if (item.height <= availableHeight) {
+                heights.add(item.height);
+            }
+            if (item.rotatable && item.width <= availableHeight) {
+                heights.add(item.width);
+            }
+        });
+
+        return Array.from(heights)
+            .sort((a, b) => b - a)
+            .slice(0, this.options.topK);
+    }
+
+    placeBand(items, height, bandStartY, availableHeight) {
+        if (height > availableHeight) return null;
+
+        const minPartDim = this.getMinPartDimension(items);
+        const sliverThreshold = (minPartDim + this.kerf) * this.options.sliverFactor;
+
+        const orientedItems = this.getItemsForHeight(items, height);
+        if (orientedItems.length === 0) return null;
+
+        orientedItems.sort((a, b) => {
+            const areaDiff = (b.width * b.height) - (a.width * a.height);
+            if (areaDiff !== 0) return areaDiff;
+            const longA = Math.max(a.width, a.height);
+            const longB = Math.max(b.width, b.height);
+            return longB - longA;
+        });
+
+        const spans = [{ x: 0, width: this.width }];
+        const placed = [];
+        const placedIds = new Set();
+        for (const candidate of orientedItems) {
+            const bestSpanIndex = this.pickBestSpan(spans, candidate.width, sliverThreshold);
+            if (bestSpanIndex < 0) continue;
+
+            const span = spans[bestSpanIndex];
+            const exactFit = span.width === candidate.width;
+            const hasKerf = span.width >= candidate.width + this.kerf;
+            if (!exactFit && !hasKerf) continue;
+
+            const leftover = exactFit ? 0 : span.width - candidate.width - this.kerf;
+            if (leftover > 0 && leftover < sliverThreshold) {
+                continue;
+            }
+
+            placed.push({
+                ...candidate.item,
+                x: span.x,
+                y: bandStartY,
+                width: candidate.width,
+                height: height,
+                rotated: candidate.isRotated
+            });
+            placedIds.add(candidate.item.id);
+
+            if (leftover === 0) {
+                spans.splice(bestSpanIndex, 1);
+            } else {
+                spans[bestSpanIndex] = {
+                    x: span.x + candidate.width + this.kerf,
+                    width: leftover
+                };
+            }
+        }
+
+        const remainingHeight = this.height - (bandStartY + height);
+        if (remainingHeight > 0 && remainingHeight < sliverThreshold) {
+            return { invalid: true };
+        }
+
+        const sliverSpans = spans.filter(span => span.width > 0 && span.width < sliverThreshold);
+        if (sliverSpans.length > 0) {
+            return { invalid: true };
+        }
+
+        const unplaced = items.filter(item => !placedIds.has(item.id));
+        const usedArea = placed.reduce((sum, p) => sum + p.width * p.height, 0);
+        const utilization = (usedArea / (this.width * height)) * 100;
+        const metrics = {
+            sliverCount: sliverSpans.length,
+            spanCount: spans.length,
+            utilization,
+            integerBonus: spans.length === 0 ? 1 : 0
+        };
+
+        return {
+            placed,
+            unplaced,
+            height,
+            metrics,
+        };
+    }
+
+    pickBestSpan(spans, itemWidth, sliverThreshold) {
+        let bestIndex = -1;
+        let bestLeftover = Infinity;
+
+        for (let i = 0; i < spans.length; i++) {
+            const span = spans[i];
+            if (span.width < itemWidth) continue;
+
+            if (span.width === itemWidth) {
+                if (0 < bestLeftover) {
+                    bestLeftover = 0;
+                    bestIndex = i;
+                }
+                continue;
+            }
+
+            if (span.width < itemWidth + this.kerf) continue;
+            const leftover = span.width - itemWidth - this.kerf;
+            if (leftover > 0 && leftover < sliverThreshold) continue;
+
+            if (leftover < bestLeftover) {
+                bestLeftover = leftover;
+                bestIndex = i;
+            }
+        }
+
+        return bestIndex;
+    }
+
+    getItemsForHeight(items, height) {
+        const oriented = [];
+
+        for (const item of items) {
+            if (item.height === height) {
+                oriented.push({ item, width: item.width, height: item.height, isRotated: false });
+                continue;
+            }
+            if (item.rotatable && item.width === height) {
+                oriented.push({ item, width: item.height, height: item.width, isRotated: true });
+            }
+        }
+
+        return oriented;
+    }
+
+    getMinPartDimension(items) {
+        let minDim = Infinity;
+        for (const item of items) {
+            minDim = Math.min(minDim, item.width, item.height);
+        }
+        return Number.isFinite(minDim) ? minDim : 0;
+    }
+
+    scoreBandLexValue(metrics) {
+        const sliverPenalty = metrics.sliverCount * 1_000_000;
+        const spanPenalty = metrics.spanCount * 1_000;
+        const utilizationScore = metrics.utilization * 10;
+        const bonusScore = metrics.integerBonus ? 1 : 0;
+        return -sliverPenalty - spanPenalty + utilizationScore + bonusScore;
+    }
+
+    bestNextApprox(items, availableHeight) {
+        if (items.length === 0 || availableHeight <= 0) return 0;
+        const candidates = this.getBandHeightCandidates(items, availableHeight);
+        let bestScore = 0;
+
+        for (const height of candidates) {
+            const placement = this.placeBand(items, height, 0, availableHeight);
+            if (!placement || placement.invalid) continue;
+            const score = this.scoreBandLexValue(placement.metrics);
+            if (score > bestScore) bestScore = score;
+        }
+
+        return bestScore;
+    }
+
+    recordCutLines(placed, bandBottomY) {
+        placed.forEach(item => {
+            const cutX = item.x + item.width;
+            if (cutX < this.width) this.cutLinesX.add(cutX);
+        });
+
+        if (bandBottomY < this.height) {
+            this.cutLinesY.add(bandBottomY);
+        }
+    }
+
+    isTailTriggered(lastBandInfo) {
+        const utilization = lastBandInfo.metrics ? lastBandInfo.metrics.utilization / 100 : 0;
+        if (utilization < this.options.tailUtilizationThreshold) return true;
+        return false;
+    }
+
+    retryLastBand(bandHistory, retryCount) {
+        if (bandHistory.length === 0) return null;
+        const last = bandHistory[bandHistory.length - 1];
+        const { snapshot, selectedHeight } = last;
+        const availableHeight = snapshot.availableHeight;
+        const candidates = this.getBandHeightCandidates(snapshot.remaining, availableHeight);
+
+        if (candidates.length < 2) return null;
+
+        const originalHeight = selectedHeight;
+        const alternativeHeights = candidates.filter(h => h !== originalHeight).slice(0, 2);
+        if (alternativeHeights.length === 0) return null;
+
+        let best = null;
+        for (const height of alternativeHeights) {
+            const placement = this.placeBand(snapshot.remaining, height, snapshot.bandStartY, availableHeight);
+            if (!placement || placement.invalid) continue;
+
+            const totalPlaced = snapshot.placed.concat(placement.placed);
+
+            const usedArea = totalPlaced.reduce((sum, p) => sum + p.width * p.height, 0);
+            const totalArea = this.width * this.height;
+
+            const cutLinesX = new Set(snapshot.cutLinesX);
+            const cutLinesY = new Set(snapshot.cutLinesY);
+            placement.placed.forEach(p => {
+                const cutX = p.x + p.width;
+                if (cutX < this.width) cutLinesX.add(cutX);
+            });
+            const bandBottom = snapshot.bandStartY + placement.height;
+            if (bandBottom < this.height) cutLinesY.add(bandBottom);
+
+            if (!best || usedArea > best.usedArea) {
+                best = {
+                    placed: totalPlaced,
+                    unplaced: placement.unplaced,
+                    usedArea,
+                    totalArea,
+                    cutLinesX,
+                    cutLinesY,
+                    debug: [{
+                        type: 'tail-retry',
+                        retryCount: retryCount + 1,
+                        replacedHeight: originalHeight,
+                        newHeight: height
+                    }]
+                };
+            }
+        }
+
+        return best;
     }
 }
 
