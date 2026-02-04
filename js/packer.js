@@ -30,6 +30,7 @@ class GuillotinePacker {
 
     /**
      * 가로 우선 (Strip-based) - 절단 편리
+     * 2단계: 스트립 배치 후 잔여 공간에 추가 배치
      */
     packHorizontal(items) {
         const expandedItems = this.expandItems(items, false);
@@ -42,6 +43,18 @@ class GuillotinePacker {
             const result = bin.packWidthStrips(remainingItems);
 
             if (result.placed.length === 0) break;
+
+            // 2단계: 잔여 공간에 추가 배치 (회전 포함)
+            if (result.unplaced.length > 0) {
+                const freeRects = bin.collectFreeRects();
+                if (freeRects.length > 0) {
+                    const fillResult = bin.fillFreeRects(freeRects, result.unplaced);
+                    result.unplaced = fillResult.unplaced;
+                    result.usedArea = bin.placed.reduce((sum, p) => sum + p.width * p.height, 0);
+                    result.efficiency = (result.usedArea / result.totalArea) * 100;
+                    result.cuttingCount = bin.cutLinesX.size + bin.cutLinesY.size;
+                }
+            }
 
             bins.push(result);
             remainingItems = result.unplaced;
@@ -361,7 +374,7 @@ class RipReapplyBin {
                     continue;
                 }
 
-                result = this.packInRect(rect, remaining, { allowAllGroups: true, pairSameWidth: false });
+                result = this.packInRectWithRotation(rect, remaining, { allowAllGroups: true, pairSameWidth: false });
 
                 if (result.placed.length > 0) {
                     placedAny = true;
@@ -406,6 +419,40 @@ class RipReapplyBin {
         return this.packInRectByHeight(rect, items, options);
     }
 
+    /**
+     * 회전 최적화 적용 패킹
+     * 회전 가능한 부품을 양방향으로 시도하여 더 많이 배치되는 결과 선택
+     */
+    packInRectWithRotation(rect, items, options = {}) {
+        // 1) 원래 방향으로 배치
+        const normalResult = this.packInRect(rect, items, options);
+
+        // 2) 회전 가능한 부품을 회전시킨 복사본 생성
+        const rotatedItems = items.map(item => {
+            if (item.rotatable && item.width !== item.height) {
+                return {
+                    ...item,
+                    width: item.height,
+                    height: item.width,
+                    rotated: !item.rotated
+                };
+            }
+            return { ...item };
+        });
+
+        const rotatedResult = this.packInRect(rect, rotatedItems, options);
+
+        // 3) 더 많이 배치된 결과 선택 (같으면 면적 큰 쪽)
+        const normalArea = normalResult.placed.reduce((s, p) => s + p.width * p.height, 0);
+        const rotatedArea = rotatedResult.placed.reduce((s, p) => s + p.width * p.height, 0);
+
+        if (rotatedResult.placed.length > normalResult.placed.length ||
+            (rotatedResult.placed.length === normalResult.placed.length && rotatedArea > normalArea)) {
+            return rotatedResult;
+        }
+        return normalResult;
+    }
+
     packInRectByWidth(rect, items, options = {}) {
         const placed = [];
         const cutLinesX = new Set();
@@ -447,11 +494,11 @@ class RipReapplyBin {
 
         for (const group of effectiveWidths) {
             const baseWidth = group.width;
-            const groupItems = group.items;
+            let groupItems = group.items;
             const canPair = pairSameWidth
                 && groupItems.length >= 2
-                && baseWidth * 2 <= rect.width;
-            const stripWidth = canPair ? baseWidth * 2 : baseWidth;
+                && baseWidth * 2 + this.kerf <= rect.width;
+            const stripWidth = canPair ? baseWidth * 2 + this.kerf : baseWidth;
 
             groupItems.sort((a, b) => b.height - a.height);
 
@@ -467,8 +514,10 @@ class RipReapplyBin {
                     const takePair = () => {
                         for (let i = groupItems.length - 1; i >= 0; i--) {
                             const first = groupItems[i];
+                            if (placedIds.has(first.id)) continue;
                             for (let j = i - 1; j >= 0; j--) {
                                 const second = groupItems[j];
+                                if (placedIds.has(second.id)) continue;
                                 if (second.height === first.height) {
                                     return { first, second, i, j };
                                 }
@@ -498,11 +547,14 @@ class RipReapplyBin {
                         });
                         placed.push({
                             ...itemB,
-                            x: stripX + itemA.width,
+                            x: stripX + itemA.width + this.kerf,
                             y: y,
                             width: itemB.width,
                             height: itemB.height
                         });
+
+                        // 쌍 사이 내부 절단선 (지연된 분리)
+                        cutLinesX.add(stripX + itemA.width);
 
                         placedIds.add(itemA.id);
                         placedIds.add(itemB.id);

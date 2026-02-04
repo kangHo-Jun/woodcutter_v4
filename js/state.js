@@ -17,7 +17,7 @@ class AppState {
             kerf: 4.2,
             enableTrim: false,
             trimMargin: 5,
-            cutDirection: 'horizontal', // 'horizontal' | 'vertical' | 'auto'
+            cutDirection: 'auto', // 'horizontal' | 'vertical' | 'auto'
             cutMethod: 'guillotine', // 'guillotine' | 'free'
             optimizationPriority: 'material', // 'material' | 'speed' | 'balance'
             panelPrice: 50000,

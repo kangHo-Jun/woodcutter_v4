@@ -13,7 +13,7 @@ class SettingsManager {
         kerf: 4.2,
         enableTrim: false,
         trimMargin: 5,
-        cutDirection: 'vertical',
+        cutDirection: 'auto',
         cutMethod: 'guillotine',
         optimizationPriority: 'material',
         cutPrice: 1500,
