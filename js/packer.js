@@ -2,7 +2,7 @@
  * Guillotine Bin Packing Algorithm
  * 두 가지 모드 지원:
  * - horizontal: Strip-based (절단 편리)
- * - auto: 가로우선 vs 스트립효율 비교 후 최적 선택
+ * - auto: 첫 절단 방향(H/V) 효율 비교 후 관통 절단 적용
  */
 
 class GuillotinePacker {
@@ -22,9 +22,79 @@ class GuillotinePacker {
             return this.packHorizontal(items);
         }
 
-        // auto: 단일 모드 Band 기반 (Full-Pass Level)
-        const result = this.packBandSingleMode(items);
+        // auto: 운영 wrapper를 통해 엔진 선택 (UI 호출 시그니처 유지)
+        return this.packAutoWithWrapper(items);
+    }
+
+    packAutoWithWrapper(items) {
+        const engine = this.resolveAutoEngineFlag();
+        this.logEngineSelection(engine);
+
+        if (engine === 'legacy') {
+            const result = this.packBandSingleMode(items);
+            result.mode = 'auto';
+            result.engine = 'legacy';
+            return result;
+        }
+
+        if (engine === 'rip-reapply') {
+            const result = this.packRipReapply(items);
+            result.mode = 'auto';
+            result.engine = 'rip-reapply';
+            return result;
+        }
+
+        const result = this.packAdaptiveAuto(items);
+        result.engine = 'adaptive';
         return result;
+    }
+
+    resolveAutoEngineFlag() {
+        const rawFlag = this.getGlobalAutoEngineFlag();
+        if (rawFlag === 'legacy' || rawFlag === 'rip-reapply' || rawFlag === 'adaptive') {
+            return rawFlag;
+        }
+        return 'adaptive';
+    }
+
+    getGlobalAutoEngineFlag() {
+        // 호환 스위치: USE_STABLE_ENGINE = true/false
+        if (typeof window !== 'undefined' && typeof window.USE_STABLE_ENGINE === 'boolean') {
+            return window.USE_STABLE_ENGINE ? 'adaptive' : 'legacy';
+        }
+
+        if (typeof window !== 'undefined' && typeof window.__WOODCUTTER_AUTO_ENGINE__ === 'string') {
+            return window.__WOODCUTTER_AUTO_ENGINE__;
+        }
+        return null;
+    }
+
+    logEngineSelection(engine) {
+        // 운영 로그 전용: UI 표시/렌더링에는 영향 없음
+        console.info(`[ENGINE] auto wrapper selected: ${engine}`);
+    }
+
+    packAdaptiveAuto(items) {
+        const expandedItems = this.expandItems(items, false);
+        const bins = [];
+        let remainingItems = [...expandedItems];
+
+        while (remainingItems.length > 0) {
+            const bin = new AdaptiveGuillotineBin(this.binWidth, this.binHeight, this.kerf);
+            const result = bin.pack(remainingItems);
+
+            if (result.placed.length === 0) break;
+
+            bins.push(result);
+            remainingItems = result.unplaced;
+        }
+
+        return {
+            bins,
+            unplaced: remainingItems,
+            totalEfficiency: this.calculateTotalEfficiency(bins),
+            mode: 'auto'
+        };
     }
 
     /**
@@ -304,6 +374,470 @@ class GuillotinePacker {
         }
 
         return finalResult;
+    }
+}
+
+/**
+ * 방향 적응형 관통 절단 Bin
+ * 1) 첫 절단 H/V 시뮬레이션 비교
+ * 2) 선택된 첫 절단의 반대 방향으로 1차 조각 처리
+ * 3) 이후 잔여 직사각형은 H/V 자유 비교로 반복
+ */
+class AdaptiveGuillotineBin {
+    constructor(width, height, kerf) {
+        this.width = width;
+        this.height = height;
+        this.kerf = kerf;
+        this.sliverThreshold = 30;
+    }
+
+    pack(items) {
+        const simulationH = this.simulateFirstDirection(items, 'H');
+        const simulationV = this.simulateFirstDirection(items, 'V');
+        const selected = this.pickBetterSimulation(simulationH, simulationV);
+
+        const cutLinesX = new Set();
+        const cutLinesY = new Set();
+
+        selected.placed.forEach(part => {
+            const cutX = part.x + part.width;
+            const cutY = part.y + part.height;
+            if (cutX < this.width) cutLinesX.add(cutX);
+            if (cutY < this.height) cutLinesY.add(cutY);
+        });
+
+        const usedArea = selected.placedArea;
+        const totalArea = this.width * this.height;
+
+        return {
+            placed: selected.placed,
+            unplaced: selected.unplaced,
+            efficiency: (usedArea / totalArea) * 100,
+            usedArea,
+            totalArea,
+            cuttingCount: cutLinesX.size + cutLinesY.size,
+            firstCutDirection: selected.firstDirection
+        };
+    }
+
+    simulateFirstDirection(items, firstDirection) {
+        const rootRect = { x: 0, y: 0, width: this.width, height: this.height };
+        const initial = this.packRectWithDirection(rootRect, items, firstDirection);
+
+        let placed = [...initial.placed];
+        let remaining = initial.unplaced;
+        let freeRects = [...initial.freeRects];
+
+        while (remaining.length > 0 && freeRects.length > 0) {
+            let placedAny = false;
+            const nextFreeRects = [];
+
+            freeRects
+                .sort((a, b) => (b.width * b.height) - (a.width * a.height))
+                .forEach(rect => {
+                    if (!this.canFitAny(rect, remaining)) {
+                        nextFreeRects.push(rect);
+                        return;
+                    }
+
+                    const bestForRect = this.packRectFlexible(rect, remaining);
+                    if (bestForRect.placed.length === 0) {
+                        nextFreeRects.push(rect);
+                        return;
+                    }
+
+                    placedAny = true;
+                    placed.push(...bestForRect.placed);
+                    remaining = bestForRect.unplaced;
+                    nextFreeRects.push(...bestForRect.freeRects);
+                });
+
+            freeRects = this.normalizeFreeRects(nextFreeRects);
+            if (!placedAny) break;
+        }
+
+        const placedArea = placed.reduce((sum, part) => sum + (part.width * part.height), 0);
+        const score = this.computeEfficiencyScore(placedArea, freeRects);
+
+        return {
+            firstDirection,
+            placed,
+            unplaced: remaining,
+            freeRects,
+            placedArea,
+            score
+        };
+    }
+
+    pickBetterSimulation(a, b) {
+        if (a.score !== b.score) return a.score > b.score ? a : b;
+        if (a.placedArea !== b.placedArea) return a.placedArea > b.placedArea ? a : b;
+        if (a.placed.length !== b.placed.length) return a.placed.length > b.placed.length ? a : b;
+        return a.unplaced.length <= b.unplaced.length ? a : b;
+    }
+
+    packRectFlexible(rect, items) {
+        const horizontal = this.packRectWithDirection(rect, items, 'H');
+        const vertical = this.packRectWithDirection(rect, items, 'V');
+
+        const areaH = horizontal.placed.reduce((sum, part) => sum + (part.width * part.height), 0);
+        const areaV = vertical.placed.reduce((sum, part) => sum + (part.width * part.height), 0);
+
+        if (areaH !== areaV) return areaH > areaV ? horizontal : vertical;
+        if (horizontal.placed.length !== vertical.placed.length) {
+            return horizontal.placed.length > vertical.placed.length ? horizontal : vertical;
+        }
+        return horizontal.unplaced.length <= vertical.unplaced.length ? horizontal : vertical;
+    }
+
+    packRectWithDirection(rect, items, direction) {
+        if (direction === 'H') {
+            return this.packHorizontalPrimary(rect, items);
+        }
+        return this.packVerticalPrimary(rect, items);
+    }
+
+    packHorizontalPrimary(rect, items) {
+        const placed = [];
+        const freeRects = [];
+        let remaining = [...items];
+        let currentY = rect.y;
+
+        while (true) {
+            const stripStartY = currentY === rect.y ? rect.y : currentY + this.kerf;
+            const availableHeight = rect.y + rect.height - stripStartY;
+            if (availableHeight <= 0) break;
+
+            const candidateHeights = this.collectStripSizes(remaining, availableHeight, rect.width, 'H');
+            if (candidateHeights.length === 0) break;
+
+            let bestAttempt = null;
+            for (const stripHeight of candidateHeights) {
+                const attempt = this.fillHorizontalStrip(rect, stripStartY, stripHeight, remaining);
+                if (attempt.placed.length === 0) continue;
+
+                if (!bestAttempt) {
+                    bestAttempt = attempt;
+                    continue;
+                }
+
+                if (attempt.usedArea > bestAttempt.usedArea) {
+                    bestAttempt = attempt;
+                    continue;
+                }
+
+                if (attempt.usedArea === bestAttempt.usedArea &&
+                    attempt.placed.length > bestAttempt.placed.length) {
+                    bestAttempt = attempt;
+                }
+            }
+
+            if (!bestAttempt) break;
+
+            placed.push(...bestAttempt.placed);
+            remaining = bestAttempt.unplaced;
+            if (bestAttempt.rightFreeRect) {
+                freeRects.push(bestAttempt.rightFreeRect);
+            }
+            currentY = stripStartY + bestAttempt.stripSize;
+        }
+
+        const bottomY = currentY === rect.y ? rect.y : currentY + this.kerf;
+        const bottomHeight = rect.y + rect.height - bottomY;
+        if (bottomHeight > 0) {
+            freeRects.push({
+                x: rect.x,
+                y: bottomY,
+                width: rect.width,
+                height: bottomHeight
+            });
+        }
+
+        return {
+            placed,
+            unplaced: remaining,
+            freeRects: this.normalizeFreeRects(freeRects)
+        };
+    }
+
+    packVerticalPrimary(rect, items) {
+        const placed = [];
+        const freeRects = [];
+        let remaining = [...items];
+        let currentX = rect.x;
+
+        while (true) {
+            const stripStartX = currentX === rect.x ? rect.x : currentX + this.kerf;
+            const availableWidth = rect.x + rect.width - stripStartX;
+            if (availableWidth <= 0) break;
+
+            const candidateWidths = this.collectStripSizes(remaining, availableWidth, rect.height, 'V');
+            if (candidateWidths.length === 0) break;
+
+            let bestAttempt = null;
+            for (const stripWidth of candidateWidths) {
+                const attempt = this.fillVerticalStrip(rect, stripStartX, stripWidth, remaining);
+                if (attempt.placed.length === 0) continue;
+
+                if (!bestAttempt) {
+                    bestAttempt = attempt;
+                    continue;
+                }
+
+                if (attempt.usedArea > bestAttempt.usedArea) {
+                    bestAttempt = attempt;
+                    continue;
+                }
+
+                if (attempt.usedArea === bestAttempt.usedArea &&
+                    attempt.placed.length > bestAttempt.placed.length) {
+                    bestAttempt = attempt;
+                }
+            }
+
+            if (!bestAttempt) break;
+
+            placed.push(...bestAttempt.placed);
+            remaining = bestAttempt.unplaced;
+            if (bestAttempt.bottomFreeRect) {
+                freeRects.push(bestAttempt.bottomFreeRect);
+            }
+            currentX = stripStartX + bestAttempt.stripSize;
+        }
+
+        const rightX = currentX === rect.x ? rect.x : currentX + this.kerf;
+        const rightWidth = rect.x + rect.width - rightX;
+        if (rightWidth > 0) {
+            freeRects.push({
+                x: rightX,
+                y: rect.y,
+                width: rightWidth,
+                height: rect.height
+            });
+        }
+
+        return {
+            placed,
+            unplaced: remaining,
+            freeRects: this.normalizeFreeRects(freeRects)
+        };
+    }
+
+    fillHorizontalStrip(rect, stripStartY, stripHeight, items) {
+        const oriented = [];
+
+        items.forEach(item => {
+            if (item.height === stripHeight && item.width <= rect.width) {
+                oriented.push({
+                    item,
+                    width: item.width,
+                    height: item.height,
+                    rotated: item.rotated
+                });
+            } else if (item.rotatable && item.width === stripHeight && item.height <= rect.width) {
+                oriented.push({
+                    item,
+                    width: item.height,
+                    height: item.width,
+                    rotated: !item.rotated
+                });
+            }
+        });
+
+        oriented.sort((a, b) => b.width - a.width);
+
+        const placed = [];
+        const placedIds = new Set();
+        let currentX = rect.x;
+        let usedWidthEnd = rect.x;
+
+        for (const candidate of oriented) {
+            if (placedIds.has(candidate.item.id)) continue;
+
+            const neededWidth = currentX === rect.x ? candidate.width : candidate.width + this.kerf;
+            if (currentX + neededWidth > rect.x + rect.width) continue;
+
+            const x = currentX === rect.x ? rect.x : currentX + this.kerf;
+            placed.push({
+                ...candidate.item,
+                x,
+                y: stripStartY,
+                width: candidate.width,
+                height: stripHeight,
+                rotated: candidate.rotated
+            });
+
+            placedIds.add(candidate.item.id);
+            currentX = x + candidate.width;
+            usedWidthEnd = currentX;
+        }
+
+        const unplaced = items.filter(item => !placedIds.has(item.id));
+        const usedArea = placed.reduce((sum, part) => sum + (part.width * part.height), 0);
+
+        let rightFreeRect = null;
+        if (placed.length > 0) {
+            const rightX = usedWidthEnd + this.kerf;
+            const rightWidth = rect.x + rect.width - rightX;
+            if (rightWidth > 0) {
+                rightFreeRect = {
+                    x: rightX,
+                    y: stripStartY,
+                    width: rightWidth,
+                    height: stripHeight
+                };
+            }
+        }
+
+        return {
+            placed,
+            unplaced,
+            stripSize: stripHeight,
+            usedArea,
+            rightFreeRect
+        };
+    }
+
+    fillVerticalStrip(rect, stripStartX, stripWidth, items) {
+        const oriented = [];
+
+        items.forEach(item => {
+            if (item.width === stripWidth && item.height <= rect.height) {
+                oriented.push({
+                    item,
+                    width: item.width,
+                    height: item.height,
+                    rotated: item.rotated
+                });
+            } else if (item.rotatable && item.height === stripWidth && item.width <= rect.height) {
+                oriented.push({
+                    item,
+                    width: item.height,
+                    height: item.width,
+                    rotated: !item.rotated
+                });
+            }
+        });
+
+        oriented.sort((a, b) => b.height - a.height);
+
+        const placed = [];
+        const placedIds = new Set();
+        let currentY = rect.y;
+        let usedHeightEnd = rect.y;
+
+        for (const candidate of oriented) {
+            if (placedIds.has(candidate.item.id)) continue;
+
+            const neededHeight = currentY === rect.y ? candidate.height : candidate.height + this.kerf;
+            if (currentY + neededHeight > rect.y + rect.height) continue;
+
+            const y = currentY === rect.y ? rect.y : currentY + this.kerf;
+            placed.push({
+                ...candidate.item,
+                x: stripStartX,
+                y,
+                width: stripWidth,
+                height: candidate.height,
+                rotated: candidate.rotated
+            });
+
+            placedIds.add(candidate.item.id);
+            currentY = y + candidate.height;
+            usedHeightEnd = currentY;
+        }
+
+        const unplaced = items.filter(item => !placedIds.has(item.id));
+        const usedArea = placed.reduce((sum, part) => sum + (part.width * part.height), 0);
+
+        let bottomFreeRect = null;
+        if (placed.length > 0) {
+            const bottomY = usedHeightEnd + this.kerf;
+            const bottomHeight = rect.y + rect.height - bottomY;
+            if (bottomHeight > 0) {
+                bottomFreeRect = {
+                    x: stripStartX,
+                    y: bottomY,
+                    width: stripWidth,
+                    height: bottomHeight
+                };
+            }
+        }
+
+        return {
+            placed,
+            unplaced,
+            stripSize: stripWidth,
+            usedArea,
+            bottomFreeRect
+        };
+    }
+
+    collectStripSizes(items, maxPrimarySize, crossSize, direction) {
+        const sizes = new Set();
+
+        items.forEach(item => {
+            if (direction === 'H') {
+                if (item.height <= maxPrimarySize && item.width <= crossSize) {
+                    sizes.add(item.height);
+                }
+                if (item.rotatable && item.width <= maxPrimarySize && item.height <= crossSize) {
+                    sizes.add(item.width);
+                }
+            } else {
+                if (item.width <= maxPrimarySize && item.height <= crossSize) {
+                    sizes.add(item.width);
+                }
+                if (item.rotatable && item.height <= maxPrimarySize && item.width <= crossSize) {
+                    sizes.add(item.height);
+                }
+            }
+        });
+
+        return Array.from(sizes).sort((a, b) => b - a);
+    }
+
+    canFitAny(rect, items) {
+        return items.some(item => {
+            const normalFit = item.width <= rect.width && item.height <= rect.height;
+            const rotatedFit = item.rotatable && item.height <= rect.width && item.width <= rect.height;
+            return normalFit || rotatedFit;
+        });
+    }
+
+    normalizeFreeRects(rects) {
+        return rects.filter(rect => rect.width > 0 && rect.height > 0);
+    }
+
+    computeEfficiencyScore(placedArea, freeRects) {
+        const boardArea = this.width * this.height;
+        const utilization = boardArea > 0 ? (placedArea / boardArea) * 100 : 0;
+        const sliverPenalty = this.computeSliverPenalty(freeRects);
+        const disconnectionPenalty = this.computeDisconnectionPenalty(freeRects);
+        return utilization - sliverPenalty - disconnectionPenalty;
+    }
+
+    computeSliverPenalty(freeRects) {
+        let penalty = 0;
+
+        freeRects.forEach(rect => {
+            const widthSliver = rect.width < this.sliverThreshold;
+            const heightSliver = rect.height < this.sliverThreshold;
+
+            if (widthSliver && heightSliver) {
+                penalty += 100;
+            } else if (widthSliver || heightSliver) {
+                penalty += 50;
+            }
+        });
+
+        return penalty;
+    }
+
+    computeDisconnectionPenalty() {
+        // 기준 문서(가로세로_알고리즘_정리.md)에는 단절 패널티 수치가 정의되어 있지 않음
+        // 현재 단계에서는 임의 계수 없이 고정값 0을 사용
+        return 0;
     }
 }
 

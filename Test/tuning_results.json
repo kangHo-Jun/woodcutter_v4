@@ -1,0 +1,2766 @@
+{
+  "formatVersion": 1,
+  "deterministic": true,
+  "scenarioBaselines": [
+    {
+      "name": "baseline",
+      "baseline": {
+        "bins": 7,
+        "cuts": 44,
+        "unplaced": 0
+      }
+    },
+    {
+      "name": "long-parts-heavy",
+      "baseline": {
+        "bins": 7,
+        "cuts": 34,
+        "unplaced": 0
+      }
+    },
+    {
+      "name": "many-small-parts",
+      "baseline": {
+        "bins": 2,
+        "cuts": 179,
+        "unplaced": 0
+      }
+    },
+    {
+      "name": "no-rotation-case",
+      "baseline": {
+        "bins": 6,
+        "cuts": 50,
+        "unplaced": 0
+      }
+    }
+  ],
+  "searchSpace": {
+    "sliverOne": [
+      20,
+      30,
+      40,
+      50,
+      60,
+      70
+    ],
+    "ratio": [
+      1.5,
+      2,
+      2.5
+    ],
+    "disconnectionPerFragment": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      8,
+      10
+    ]
+  },
+  "totalConfigs": 126,
+  "feasibleConfigs": 90,
+  "results": [
+    {
+      "config": {
+        "sliverOne": 20,
+        "sliverBoth": 30,
+        "disconnectionPerFragment": 5
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 33,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 20,
+        "sliverBoth": 40,
+        "disconnectionPerFragment": 5
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 33,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 20,
+        "sliverBoth": 50,
+        "disconnectionPerFragment": 5
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 33,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 30,
+        "sliverBoth": 45,
+        "disconnectionPerFragment": 0
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 30,
+        "sliverBoth": 60,
+        "disconnectionPerFragment": 0
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 30,
+        "sliverBoth": 75,
+        "disconnectionPerFragment": 0
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 40,
+        "sliverBoth": 60,
+        "disconnectionPerFragment": 0
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 40,
+        "sliverBoth": 60,
+        "disconnectionPerFragment": 1
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 40,
+        "sliverBoth": 60,
+        "disconnectionPerFragment": 2
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 40,
+        "sliverBoth": 80,
+        "disconnectionPerFragment": 0
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 40,
+        "sliverBoth": 80,
+        "disconnectionPerFragment": 1
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 40,
+        "sliverBoth": 80,
+        "disconnectionPerFragment": 2
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 40,
+        "sliverBoth": 100,
+        "disconnectionPerFragment": 0
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 40,
+        "sliverBoth": 100,
+        "disconnectionPerFragment": 1
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 40,
+        "sliverBoth": 100,
+        "disconnectionPerFragment": 2
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 50,
+        "sliverBoth": 75,
+        "disconnectionPerFragment": 0
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 50,
+        "sliverBoth": 75,
+        "disconnectionPerFragment": 1
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 50,
+        "sliverBoth": 75,
+        "disconnectionPerFragment": 2
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 50,
+        "sliverBoth": 75,
+        "disconnectionPerFragment": 3
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 50,
+        "sliverBoth": 75,
+        "disconnectionPerFragment": 5
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 50,
+        "sliverBoth": 100,
+        "disconnectionPerFragment": 0
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 50,
+        "sliverBoth": 100,
+        "disconnectionPerFragment": 1
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 50,
+        "sliverBoth": 100,
+        "disconnectionPerFragment": 2
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 50,
+        "sliverBoth": 100,
+        "disconnectionPerFragment": 3
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 50,
+        "sliverBoth": 100,
+        "disconnectionPerFragment": 5
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 50,
+        "sliverBoth": 125,
+        "disconnectionPerFragment": 0
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 50,
+        "sliverBoth": 125,
+        "disconnectionPerFragment": 1
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 50,
+        "sliverBoth": 125,
+        "disconnectionPerFragment": 2
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 50,
+        "sliverBoth": 125,
+        "disconnectionPerFragment": 3
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 50,
+        "sliverBoth": 125,
+        "disconnectionPerFragment": 5
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 60,
+        "sliverBoth": 90,
+        "disconnectionPerFragment": 0
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 60,
+        "sliverBoth": 90,
+        "disconnectionPerFragment": 1
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 60,
+        "sliverBoth": 90,
+        "disconnectionPerFragment": 2
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 60,
+        "sliverBoth": 90,
+        "disconnectionPerFragment": 3
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 60,
+        "sliverBoth": 90,
+        "disconnectionPerFragment": 5
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 60,
+        "sliverBoth": 120,
+        "disconnectionPerFragment": 0
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 60,
+        "sliverBoth": 120,
+        "disconnectionPerFragment": 1
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 60,
+        "sliverBoth": 120,
+        "disconnectionPerFragment": 2
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 60,
+        "sliverBoth": 120,
+        "disconnectionPerFragment": 3
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 60,
+        "sliverBoth": 120,
+        "disconnectionPerFragment": 5
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 60,
+        "sliverBoth": 150,
+        "disconnectionPerFragment": 0
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 60,
+        "sliverBoth": 150,
+        "disconnectionPerFragment": 1
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 60,
+        "sliverBoth": 150,
+        "disconnectionPerFragment": 2
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 60,
+        "sliverBoth": 150,
+        "disconnectionPerFragment": 3
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 60,
+        "sliverBoth": 150,
+        "disconnectionPerFragment": 5
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 70,
+        "sliverBoth": 105,
+        "disconnectionPerFragment": 0
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 70,
+        "sliverBoth": 105,
+        "disconnectionPerFragment": 1
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 70,
+        "sliverBoth": 105,
+        "disconnectionPerFragment": 2
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 70,
+        "sliverBoth": 105,
+        "disconnectionPerFragment": 3
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 70,
+        "sliverBoth": 105,
+        "disconnectionPerFragment": 5
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 70,
+        "sliverBoth": 140,
+        "disconnectionPerFragment": 0
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 70,
+        "sliverBoth": 140,
+        "disconnectionPerFragment": 1
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 70,
+        "sliverBoth": 140,
+        "disconnectionPerFragment": 2
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 70,
+        "sliverBoth": 140,
+        "disconnectionPerFragment": 3
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 70,
+        "sliverBoth": 140,
+        "disconnectionPerFragment": 5
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 70,
+        "sliverBoth": 175,
+        "disconnectionPerFragment": 0
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 70,
+        "sliverBoth": 175,
+        "disconnectionPerFragment": 1
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 70,
+        "sliverBoth": 175,
+        "disconnectionPerFragment": 2
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 70,
+        "sliverBoth": 175,
+        "disconnectionPerFragment": 3
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 70,
+        "sliverBoth": 175,
+        "disconnectionPerFragment": 5
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 50,
+          "unplaced": 0
+        },
+        "totalCuts": 307
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 20,
+        "sliverBoth": 30,
+        "disconnectionPerFragment": 0
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 20,
+        "sliverBoth": 30,
+        "disconnectionPerFragment": 1
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 20,
+        "sliverBoth": 30,
+        "disconnectionPerFragment": 2
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 20,
+        "sliverBoth": 30,
+        "disconnectionPerFragment": 3
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 20,
+        "sliverBoth": 40,
+        "disconnectionPerFragment": 0
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 20,
+        "sliverBoth": 40,
+        "disconnectionPerFragment": 1
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 20,
+        "sliverBoth": 40,
+        "disconnectionPerFragment": 2
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 20,
+        "sliverBoth": 40,
+        "disconnectionPerFragment": 3
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 20,
+        "sliverBoth": 50,
+        "disconnectionPerFragment": 0
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 20,
+        "sliverBoth": 50,
+        "disconnectionPerFragment": 1
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 20,
+        "sliverBoth": 50,
+        "disconnectionPerFragment": 2
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 20,
+        "sliverBoth": 50,
+        "disconnectionPerFragment": 3
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 30,
+        "sliverBoth": 45,
+        "disconnectionPerFragment": 1
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 30,
+        "sliverBoth": 45,
+        "disconnectionPerFragment": 2
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 30,
+        "sliverBoth": 45,
+        "disconnectionPerFragment": 3
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 30,
+        "sliverBoth": 45,
+        "disconnectionPerFragment": 5
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 30,
+        "sliverBoth": 60,
+        "disconnectionPerFragment": 1
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 30,
+        "sliverBoth": 60,
+        "disconnectionPerFragment": 2
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 30,
+        "sliverBoth": 60,
+        "disconnectionPerFragment": 3
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 30,
+        "sliverBoth": 60,
+        "disconnectionPerFragment": 5
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 30,
+        "sliverBoth": 75,
+        "disconnectionPerFragment": 1
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 30,
+        "sliverBoth": 75,
+        "disconnectionPerFragment": 2
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 30,
+        "sliverBoth": 75,
+        "disconnectionPerFragment": 3
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 30,
+        "sliverBoth": 75,
+        "disconnectionPerFragment": 5
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 40,
+        "sliverBoth": 60,
+        "disconnectionPerFragment": 3
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 40,
+        "sliverBoth": 60,
+        "disconnectionPerFragment": 5
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 40,
+        "sliverBoth": 80,
+        "disconnectionPerFragment": 3
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 40,
+        "sliverBoth": 80,
+        "disconnectionPerFragment": 5
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 40,
+        "sliverBoth": 100,
+        "disconnectionPerFragment": 3
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    },
+    {
+      "config": {
+        "sliverOne": 40,
+        "sliverBoth": 100,
+        "disconnectionPerFragment": 5
+      },
+      "results": {
+        "baseline": {
+          "bins": 7,
+          "cuts": 44,
+          "unplaced": 0
+        },
+        "long-parts-heavy": {
+          "bins": 7,
+          "cuts": 34,
+          "unplaced": 0
+        },
+        "many-small-parts": {
+          "bins": 2,
+          "cuts": 179,
+          "unplaced": 0
+        },
+        "no-rotation-case": {
+          "bins": 6,
+          "cuts": 51,
+          "unplaced": 0
+        },
+        "totalCuts": 308
+      }
+    }
+  ]
+}

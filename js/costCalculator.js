@@ -25,11 +25,13 @@ class CostCalculator {
         // 총 절단 횟수 계산
         const totalCuts = bins.reduce((sum, bin) => sum + (bin.cuttingCount || 0), 0);
 
-        // 트리밍 절단 횟수 (트리밍 사용 시 판재당 4회)
+        // 트리밍 절단 횟수 (참고용 메타데이터)
         const trimCuts = settings.enableTrim ? panelCount * 4 : 0;
 
-        // 청구 가능한 절단 횟수 (트리밍 제외)
-        const billableCuts = Math.max(0, totalCuts - trimCuts);
+        // 청구 가능한 절단 횟수
+        // 주의: totalCuts는 엔진에서 계산된 실제 절단 횟수이며, trimCuts가 이미 포함되어 있지 않다.
+        // 따라서 trimCuts를 추가 차감하면 과소청구가 발생한다.
+        const billableCuts = totalCuts;
 
         // 총 재단비 = 청구 가능한 절단 횟수 × 절단 단가
         const totalCuttingCost = billableCuts * settings.cutPrice;

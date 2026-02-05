@@ -1,5 +1,5 @@
 /**
- * 대장간 V3 - 통합 메인 애플리케이션
+ * 대산 Ai - 통합 메인 애플리케이션
  * PC/Tablet/Mobile 반응형 지원
  */
 
@@ -17,7 +17,7 @@ class WoodcutterApp {
      * 애플리케이션 초기화
      */
     async init() {
-        console.log('대장간 V3 통합 버전 초기화 중...');
+        console.log('대산 Ai 통합 버전 초기화 중...');
 
         // 설정 불러오기
         if (window.SettingsManager) {
@@ -545,9 +545,18 @@ class WoodcutterApp {
             const settings = window.SettingsManager ? SettingsManager.readFromUI() : this.state.settings;
             this.state.updateSettings(settings);
 
+            const trimEnabled = settings.enableTrim === true;
+            const trimMargin = trimEnabled ? (parseFloat(settings.trimMargin) || 0) : 0;
+            const effectiveBoardWidth = this.state.boardSpec.width - (trimMargin * 2);
+            const effectiveBoardHeight = this.state.boardSpec.height - (trimMargin * 2);
+
+            if (trimEnabled && (effectiveBoardWidth <= 0 || effectiveBoardHeight <= 0)) {
+                throw new Error('전단 여백이 판재 크기보다 큽니다. 여백 값을 확인하세요.');
+            }
+
             const packer = new GuillotinePacker(
-                this.state.boardSpec.width,
-                this.state.boardSpec.height,
+                trimEnabled ? effectiveBoardWidth : this.state.boardSpec.width,
+                trimEnabled ? effectiveBoardHeight : this.state.boardSpec.height,
                 settings.kerf
             );
 
@@ -849,50 +858,104 @@ class WoodcutterApp {
         ctx.fillText(`${boardHeight} mm`, 0, 0);
         ctx.restore();
 
-        // === 잔여 영역 표시 추가 (여유 높이/폭 50mm 이상 표시) ===
-        // 작은 치수만 표시
-        const maxY = Math.max(...bin.placed.map(part => part.y + part.height), 0);
-        const remnantHeight = boardHeight - maxY;
+        // === 잔여 영역 표시: 가로 최소 잔여 + 세로 최소 잔여 ===
+        const residuals = this.getAxisMinResiduals(bin, boardWidth, boardHeight);
+        const maxX = Math.max(...(bin.placed || []).map(part => part.x + part.width), 0);
+        const maxY = Math.max(...(bin.placed || []).map(part => part.y + part.height), 0);
+        const rightRemnantWidth = Math.max(0, boardWidth - maxX);
+        const bottomRemnantHeight = Math.max(0, boardHeight - maxY);
 
-        const maxX = Math.max(...bin.placed.map(part => part.x + part.width), 0);
-        const remnantWidth = boardWidth - maxX;
-
-        const showHeight = remnantHeight >= 50;
-        const showWidth = remnantWidth >= 50;
-
-        let preferred = null;
-        if (showHeight && showWidth) {
-            preferred = remnantHeight <= remnantWidth ? 'height' : 'width';
-        } else if (showHeight) {
-            preferred = 'height';
-        } else if (showWidth) {
-            preferred = 'width';
-        }
-
-        if (preferred === 'height') {
+        if (residuals.minHeight > 0 && bottomRemnantHeight > 0) {
             ctx.save();
-            const ry = padding + maxY * drawScale;
             ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
             ctx.font = 'bold 16px "Noto Sans KR", sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-
-            ctx.fillText(`${Math.round(remnantHeight)}mm`, padding + (boardWidth * drawScale) / 2, ry + (remnantHeight * drawScale) / 2);
+            ctx.fillText(
+                `${Math.round(residuals.minHeight)}mm`,
+                padding + (boardWidth * drawScale) / 2,
+                padding + (maxY + bottomRemnantHeight / 2) * drawScale
+            );
             ctx.restore();
         }
 
-        if (preferred === 'width') {
+        if (residuals.minWidth > 0 && rightRemnantWidth > 0) {
             ctx.save();
-            const rx = padding + maxX * drawScale;
             ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
             ctx.font = 'bold 16px "Noto Sans KR", sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.translate(rx + (remnantWidth * drawScale) / 2, padding + (boardHeight * drawScale) / 2);
+            ctx.translate(
+                padding + (maxX + rightRemnantWidth / 2) * drawScale,
+                padding + (boardHeight * drawScale) / 2
+            );
             ctx.rotate(-Math.PI / 2);
-            ctx.fillText(`${Math.round(remnantWidth)}mm`, 0, 0);
+            ctx.fillText(`${Math.round(residuals.minWidth)}mm`, 0, 0);
             ctx.restore();
         }
+    }
+
+    getAxisMinResiduals(bin, boardWidth, boardHeight) {
+        const freeRects = this.buildFreeRects(bin, boardWidth, boardHeight);
+        const kerf = (this.state && this.state.settings && Number.isFinite(this.state.settings.kerf))
+            ? this.state.settings.kerf
+            : 0;
+        const minMeaningful = Math.max(1, kerf + 0.01);
+
+        const widthCandidates = freeRects
+            .map(rect => rect.width)
+            .filter(v => v > minMeaningful);
+        const heightCandidates = freeRects
+            .map(rect => rect.height)
+            .filter(v => v > minMeaningful);
+
+        return {
+            minWidth: widthCandidates.length > 0 ? Math.min(...widthCandidates) : 0,
+            minHeight: heightCandidates.length > 0 ? Math.min(...heightCandidates) : 0
+        };
+    }
+
+    buildFreeRects(bin, boardWidth, boardHeight) {
+        const xEdges = new Set([0, boardWidth]);
+        const yEdges = new Set([0, boardHeight]);
+        const placed = bin.placed || [];
+
+        placed.forEach(part => {
+            xEdges.add(part.x);
+            xEdges.add(part.x + part.width);
+            yEdges.add(part.y);
+            yEdges.add(part.y + part.height);
+        });
+
+        const xs = Array.from(xEdges).sort((a, b) => a - b);
+        const ys = Array.from(yEdges).sort((a, b) => a - b);
+        const freeRects = [];
+
+        for (let yi = 0; yi < ys.length - 1; yi++) {
+            const y0 = ys[yi];
+            const y1 = ys[yi + 1];
+            const h = y1 - y0;
+            if (h <= 0) continue;
+
+            for (let xi = 0; xi < xs.length - 1; xi++) {
+                const x0 = xs[xi];
+                const x1 = xs[xi + 1];
+                const w = x1 - x0;
+                if (w <= 0) continue;
+
+                const cx = x0 + w / 2;
+                const cy = y0 + h / 2;
+                const occupied = placed.some(part =>
+                    cx >= part.x && cx <= part.x + part.width &&
+                    cy >= part.y && cy <= part.y + part.height
+                );
+                if (!occupied) {
+                    freeRects.push({ x: x0, y: y0, width: w, height: h });
+                }
+            }
+        }
+
+        return freeRects;
     }
 
     /**
@@ -988,7 +1051,7 @@ class WoodcutterApp {
      * 이메일로 공유
      */
     shareViaEmail(text) {
-        const subject = encodeURIComponent('대장간 V3 - 재단 계획');
+        const subject = encodeURIComponent('대산 Ai - 재단 계획');
         const body = encodeURIComponent(text);
         window.location.href = `mailto:?subject=${subject}&body=${body}`;
     }
@@ -1012,7 +1075,7 @@ class WoodcutterApp {
         const result = this.state.result;
         const labeledGroups = this.state.labeledGroups;
 
-        let text = `[대장간 V3 재단 계획]\n`;
+        let text = `[대산 Ai 재단 계획]\n`;
         text += `판재: ${this.state.boardSpec.width}×${this.state.boardSpec.height}mm\n`;
         text += `총 판재수: ${result.bins.length}장\n`;
         text += `재단 횟수: ${costInfo.totalCuts}회\n`;
@@ -1316,7 +1379,7 @@ class WoodcutterApp {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `대장간_프로젝트_${new Date().toISOString().slice(0, 10)}.json`;
+        a.download = `대산Ai_프로젝트_${new Date().toISOString().slice(0, 10)}.json`;
         a.click();
         URL.revokeObjectURL(url);
     }
