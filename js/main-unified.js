@@ -1232,7 +1232,7 @@ class WoodcutterApp {
 
         // 텍스트 정보 준비 (나중에 회전하여 배치)
         const title = count > 1 ? `패턴 ${index + 1} (${count}장 동일)` : `패턴 ${index + 1}`;
-        const settings = window.SettingsManager ? SettingsManager.readFromUI() : { enableTrim: false };
+        const settings = window.SettingsManager ? SettingsManager.readFromUI() : { enableTrim: true };
         const trimStatus = settings.enableTrim ? '전단(O)' : '전단(X)';
         const cutInfo = `절단: ${bin.cuttingCount}회  |  ${trimStatus}`;
 

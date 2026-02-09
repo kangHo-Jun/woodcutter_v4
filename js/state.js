@@ -15,7 +15,7 @@ class AppState {
 
         this.settings = {
             kerf: 4.2,
-            enableTrim: false,
+            enableTrim: true,
             trimMargin: 5,
             cutDirection: 'auto', // 'horizontal' | 'vertical' | 'auto'
             cutMethod: 'guillotine', // 'guillotine' | 'free'

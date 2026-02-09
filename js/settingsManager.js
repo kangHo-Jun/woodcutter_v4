@@ -11,7 +11,7 @@ class SettingsManager {
      */
     static DEFAULT_SETTINGS = {
         kerf: 4.2,
-        enableTrim: false,
+        enableTrim: true,
         trimMargin: 5,
         cutDirection: 'auto',
         cutMethod: 'guillotine',
