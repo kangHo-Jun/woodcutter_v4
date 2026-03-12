@@ -154,18 +154,13 @@ class InputHandler {
             return;
         }
 
-        // 입력값 읽기
-        let width = parseFloat(this.elements.partWidth.value);
-        let height = parseFloat(this.elements.partHeight.value);
+        // 입력값 읽기 (사용자 입력 그대로)
+        const width = parseFloat(this.elements.partWidth.value);
+        const height = parseFloat(this.elements.partHeight.value);
         const qty = parseInt(this.elements.partQty.value);
         const rotatable = this.elements.partRotatable ? this.elements.partRotatable.checked : true;
 
-        // 나무결 고려하지 않을 때 큰 숫자가 폭이 되도록 자동 정렬
-        if (!this.state.boardSpec.considerGrain && height > width) {
-            [width, height] = [height, width]; // swap
-        }
-
-        // 검증
+        // 검증 (입력값 기준 - 스왑 없음)
         const widthCheck = Validator.validatePartWidth(width, this.state.boardSpec.width);
         const heightCheck = Validator.validatePartHeight(height, this.state.boardSpec.height);
         const qtyCheck = Validator.validatePartQty(qty);
