@@ -319,14 +319,10 @@ class WoodcutterApp {
         const partQtyEl = document.getElementById('partQty');
         const partRotatableEl = document.getElementById('partRotatable');
 
-        let width = parseFloat(partWidthEl.value);
-        let height = parseFloat(partHeightEl.value);
+        const width = parseFloat(partWidthEl.value);
+        const height = parseFloat(partHeightEl.value);
         const qty = parseInt(partQtyEl.value) || 1;
         const rotatable = partRotatableEl ? partRotatableEl.checked : true;
-
-        if (!this.state.boardSpec.considerGrain && height > width) {
-            [width, height] = [height, width];
-        }
 
         const widthCheck = Validator.validatePartWidth(width, this.state.boardSpec.width);
         const heightCheck = Validator.validatePartHeight(height, this.state.boardSpec.height);
