@@ -85,6 +85,10 @@ class GuillotinePacker {
 
             if (result.placed.length === 0) break;
 
+            if (result.unplaced.length > 0) {
+                this.tryPlaceResidualInAdaptive(result);
+            }
+
             bins.push(result);
             remainingItems = result.unplaced;
         }
@@ -284,6 +288,66 @@ class GuillotinePacker {
         return (totalUsed / totalArea) * 100;
     }
 
+    tryPlaceResidualInAdaptive(result) {
+        if (!result || !Array.isArray(result.unplaced) || result.unplaced.length === 0) {
+            return false;
+        }
+        if (!Array.isArray(result.freeRects) || result.freeRects.length === 0) {
+            return false;
+        }
+
+        const freeRects = [...result.freeRects]
+            .filter(rect => rect.width > 0 && rect.height > 0)
+            .sort((a, b) => (b.width * b.height) - (a.width * a.height));
+
+        const candidates = [...result.unplaced]
+            .sort((a, b) => (b.width * b.height) - (a.width * a.height));
+
+        for (const rect of freeRects) {
+            for (const item of candidates) {
+                const orientations = [{ w: item.width, h: item.height, rotated: false }];
+                if (item.rotatable) {
+                    orientations.push({ w: item.height, h: item.width, rotated: true });
+                }
+
+                for (const orient of orientations) {
+                    if (orient.w <= rect.width && orient.h <= rect.height) {
+                        result.placed.push({
+                            ...item,
+                            x: rect.x,
+                            y: rect.y,
+                            width: orient.w,
+                            height: orient.h,
+                            rotated: orient.rotated
+                        });
+
+                        result.unplaced = result.unplaced.filter(p => p.id !== item.id);
+                        result.usedArea = result.placed.reduce((sum, p) => sum + p.width * p.height, 0);
+                        result.efficiency = (result.usedArea / result.totalArea) * 100;
+                        result.cuttingCount = this.recomputeAdaptiveCuttingCount(result.placed);
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    recomputeAdaptiveCuttingCount(placed) {
+        const cutLinesX = new Set();
+        const cutLinesY = new Set();
+
+        placed.forEach(part => {
+            const cutX = part.x + part.width;
+            const cutY = part.y + part.height;
+            if (cutX < this.binWidth) cutLinesX.add(cutX);
+            if (cutY < this.binHeight) cutLinesY.add(cutY);
+        });
+
+        return cutLinesX.size + cutLinesY.size;
+    }
+
     packBandSingleMode(items) {
         const baseOptions = {
             topK: 5,
@@ -412,6 +476,7 @@ class AdaptiveGuillotineBin {
         return {
             placed: selected.placed,
             unplaced: selected.unplaced,
+            freeRects: selected.freeRects,
             efficiency: (usedArea / totalArea) * 100,
             usedArea,
             totalArea,

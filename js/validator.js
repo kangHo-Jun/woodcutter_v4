@@ -84,7 +84,10 @@ class Validator {
             return { valid: false, message: '올바른 숫자를 입력하세요' };
         }
         if (!this.isInRange(width, 10, boardWidth)) {
-            return { valid: false, message: `부품 폭은 10~${boardWidth}mm 범위여야 합니다` };
+            if (Number(width) > Number(boardWidth)) {
+                return { valid: false, message: `부품 폭은 판재 폭(${boardWidth} mm) 이하여야 합니다` };
+            }
+            return { valid: false, message: '부품 폭은 10mm 이상이어야 합니다' };
         }
         return { valid: true, message: '' };
     }
@@ -103,7 +106,10 @@ class Validator {
             return { valid: false, message: '올바른 숫자를 입력하세요' };
         }
         if (!this.isInRange(height, 10, boardHeight)) {
-            return { valid: false, message: `부품 높이는 10~${boardHeight}mm 범위여야 합니다` };
+            if (Number(height) > Number(boardHeight)) {
+                return { valid: false, message: `부품 높이는 판재 높이(${boardHeight} mm) 이하여야 합니다` };
+            }
+            return { valid: false, message: '부품 높이는 10mm 이상이어야 합니다' };
         }
         return { valid: true, message: '' };
     }
