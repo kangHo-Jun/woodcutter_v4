@@ -544,7 +544,7 @@ class WoodcutterApp {
             const trimEnabled = settings.enableTrim === true;
             const trimMargin = trimEnabled ? (parseFloat(settings.trimMargin) || 0) : 0;
             const effectiveBoardWidth = this.state.boardSpec.width;
-            const effectiveBoardHeight = this.state.boardSpec.height - (trimMargin * 2);
+            const effectiveBoardHeight = this.state.boardSpec.height - trimMargin;
 
             if (trimEnabled && (effectiveBoardWidth <= 0 || effectiveBoardHeight <= 0)) {
                 throw new Error('전단 여백이 판재 크기보다 큽니다. 여백 값을 확인하세요.');
