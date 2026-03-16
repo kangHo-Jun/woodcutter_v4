@@ -731,9 +731,9 @@ class WoodcutterApp {
      */
     drawBinToCanvas(canvas, bin, labeledGroups) {
         const boardWidth = this.state.boardSpec.width;
-        const settings = window.SettingsManager ? SettingsManager.readFromUI() : {};
-        const trimEnabled = settings.enableTrim === true;
-        const trimMargin = trimEnabled ? (parseFloat(settings.trimMargin) || 0) : 0;
+        const trimSettings = window.SettingsManager ? SettingsManager.readFromUI() : {};
+        const trimEnabled = trimSettings.enableTrim === true;
+        const trimMargin = trimEnabled ? (parseFloat(trimSettings.trimMargin) || 0) : 0;
         const boardHeight = this.state.boardSpec.height - trimMargin;
         const maxWidth = 700;
         const scale = maxWidth / boardWidth;
