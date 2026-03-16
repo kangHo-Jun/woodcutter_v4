@@ -889,39 +889,6 @@ class WoodcutterApp {
             ctx.fillText(`${Math.round(residuals.minWidth)}mm`, 0, 0);
             ctx.restore();
         }
-
-        // === 절단선 명시적 표시 (판재 테두리 위에 그려서 마지막 절단선도 보이도록) ===
-        // result bin에는 cutLinesY/X가 없으므로 placed에서 재구성
-        const cutLinesY = new Set();
-        const cutLinesX = new Set();
-        (bin.placed || []).forEach(part => {
-            const cutY = part.y + part.height;
-            const cutX = part.x + part.width;
-            if (cutY < boardHeight) cutLinesY.add(cutY);
-            if (cutX < boardWidth) cutLinesX.add(cutX);
-        });
-
-        ctx.save();
-        ctx.strokeStyle = '#C8956C';
-        ctx.lineWidth = 1.5;
-
-        cutLinesY.forEach(lineY => {
-            const cy = padding + lineY * drawScale;
-            ctx.beginPath();
-            ctx.moveTo(padding - 1, cy);
-            ctx.lineTo(padding + boardWidth * drawScale + 1, cy);
-            ctx.stroke();
-        });
-
-        cutLinesX.forEach(lineX => {
-            const cx = padding + lineX * drawScale;
-            ctx.beginPath();
-            ctx.moveTo(cx, padding - 1);
-            ctx.lineTo(cx, padding + boardHeight * drawScale + 1);
-            ctx.stroke();
-        });
-
-        ctx.restore();
     }
 
     getAxisMinResiduals(bin, boardWidth, boardHeight) {

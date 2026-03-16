@@ -570,38 +570,30 @@ class AdaptiveGuillotineBin {
 
         while (true) {
             const stripStartY = currentY === rect.y ? rect.y : currentY + this.kerf;
-            // 타이트핏: 잔재 기준 가용 높이 (kerf 포함 전 currentY 기준)
-            const availableHeight = rect.y + rect.height - currentY;
+            const availableHeight = rect.y + rect.height - stripStartY;
             if (availableHeight <= 0) break;
 
             const candidateHeights = this.collectStripSizes(remaining, availableHeight, rect.width, 'H');
             if (candidateHeights.length === 0) break;
 
             let bestAttempt = null;
-            let bestActualStartY = stripStartY;
             for (const stripHeight of candidateHeights) {
-                // 타이트핏: kerf 추가 시 판재 초과하면 kerf 없이 배치 (마지막 절단 표시 위해)
-                const actualStartY = (stripStartY + stripHeight <= rect.y + rect.height)
-                    ? stripStartY : currentY;
-                const attempt = this.fillHorizontalStrip(rect, actualStartY, stripHeight, remaining);
+                const attempt = this.fillHorizontalStrip(rect, stripStartY, stripHeight, remaining);
                 if (attempt.placed.length === 0) continue;
 
                 if (!bestAttempt) {
                     bestAttempt = attempt;
-                    bestActualStartY = actualStartY;
                     continue;
                 }
 
                 if (attempt.usedArea > bestAttempt.usedArea) {
                     bestAttempt = attempt;
-                    bestActualStartY = actualStartY;
                     continue;
                 }
 
                 if (attempt.usedArea === bestAttempt.usedArea &&
                     attempt.placed.length > bestAttempt.placed.length) {
                     bestAttempt = attempt;
-                    bestActualStartY = actualStartY;
                 }
             }
 
@@ -612,7 +604,7 @@ class AdaptiveGuillotineBin {
             if (bestAttempt.rightFreeRect) {
                 freeRects.push(bestAttempt.rightFreeRect);
             }
-            currentY = bestActualStartY + bestAttempt.stripSize;
+            currentY = stripStartY + bestAttempt.stripSize;
         }
 
         const bottomY = currentY === rect.y ? rect.y : currentY + this.kerf;
@@ -641,38 +633,30 @@ class AdaptiveGuillotineBin {
 
         while (true) {
             const stripStartX = currentX === rect.x ? rect.x : currentX + this.kerf;
-            // 타이트핏: 잔재 기준 가용 너비 (kerf 포함 전 currentX 기준)
-            const availableWidth = rect.x + rect.width - currentX;
+            const availableWidth = rect.x + rect.width - stripStartX;
             if (availableWidth <= 0) break;
 
             const candidateWidths = this.collectStripSizes(remaining, availableWidth, rect.height, 'V');
             if (candidateWidths.length === 0) break;
 
             let bestAttempt = null;
-            let bestActualStartX = stripStartX;
             for (const stripWidth of candidateWidths) {
-                // 타이트핏: kerf 추가 시 판재 초과하면 kerf 없이 배치 (마지막 절단 표시 위해)
-                const actualStartX = (stripStartX + stripWidth <= rect.x + rect.width)
-                    ? stripStartX : currentX;
-                const attempt = this.fillVerticalStrip(rect, actualStartX, stripWidth, remaining);
+                const attempt = this.fillVerticalStrip(rect, stripStartX, stripWidth, remaining);
                 if (attempt.placed.length === 0) continue;
 
                 if (!bestAttempt) {
                     bestAttempt = attempt;
-                    bestActualStartX = actualStartX;
                     continue;
                 }
 
                 if (attempt.usedArea > bestAttempt.usedArea) {
                     bestAttempt = attempt;
-                    bestActualStartX = actualStartX;
                     continue;
                 }
 
                 if (attempt.usedArea === bestAttempt.usedArea &&
                     attempt.placed.length > bestAttempt.placed.length) {
                     bestAttempt = attempt;
-                    bestActualStartX = actualStartX;
                 }
             }
 
@@ -683,7 +667,7 @@ class AdaptiveGuillotineBin {
             if (bestAttempt.bottomFreeRect) {
                 freeRects.push(bestAttempt.bottomFreeRect);
             }
-            currentX = bestActualStartX + bestAttempt.stripSize;
+            currentX = stripStartX + bestAttempt.stripSize;
         }
 
         const rightX = currentX === rect.x ? rect.x : currentX + this.kerf;
@@ -810,13 +794,10 @@ class AdaptiveGuillotineBin {
         for (const candidate of oriented) {
             if (placedIds.has(candidate.item.id)) continue;
 
-            // 잔재 >= 부품크기 이면 배치 (톱날 두께 무관)
-            if (rect.y + rect.height - currentY < candidate.height) continue;
+            const neededHeight = currentY === rect.y ? candidate.height : candidate.height + this.kerf;
+            if (currentY + neededHeight > rect.y + rect.height) continue;
 
-            const kerfBefore = currentY === rect.y ? 0 : this.kerf;
-            // 타이트핏: kerf 추가 시 판재 초과하면 kerf 없이 배치 (마지막 절단 표시 위해)
-            const y = (currentY + kerfBefore + candidate.height <= rect.y + rect.height)
-                ? currentY + kerfBefore : currentY;
+            const y = currentY === rect.y ? rect.y : currentY + this.kerf;
             placed.push({
                 ...candidate.item,
                 x: stripStartX,
@@ -995,12 +976,10 @@ class WidthStripBin {
 
                 for (let i = groupItems.length - 1; i >= 0; i--) {
                     const item = groupItems[i];
-                    // 잔재 >= 부품크기 이면 배치 (톱날 두께 무관)
-                    if (this.height - currentY >= item.height) {
-                        const kerfBefore = currentY === 0 ? 0 : this.kerf;
-                        // 타이트핏: kerf 추가 시 판재 초과하면 kerf 없이 배치 (마지막 절단 표시 위해)
-                        const y = (currentY + kerfBefore + item.height <= this.height)
-                            ? currentY + kerfBefore : currentY;
+                    const neededHeight = currentY === 0 ? item.height : item.height + this.kerf;
+
+                    if (currentY + neededHeight <= this.height) {
+                        const y = currentY === 0 ? 0 : currentY + this.kerf;
 
                         this.placed.push({
                             ...item,
@@ -1352,13 +1331,11 @@ class RipReapplyBin {
 
                         const itemA = pair.first;
                         const itemB = pair.second;
-                        // 잔재 >= 부품크기 이면 배치 (톱날 두께 무관)
-                        if (rect.y + rect.height - currentY < itemA.height) break;
+                        const neededHeight = currentY === rect.y ? itemA.height : itemA.height + this.kerf;
 
-                        const kerfBefore = currentY === rect.y ? 0 : this.kerf;
-                        // 타이트핏: kerf 추가 시 판재 초과하면 kerf 없이 배치 (마지막 절단 표시 위해)
-                        const y = (currentY + kerfBefore + itemA.height <= rect.y + rect.height)
-                            ? currentY + kerfBefore : currentY;
+                        if (currentY + neededHeight > rect.y + rect.height) break;
+
+                        const y = currentY === rect.y ? rect.y : currentY + this.kerf;
 
                         placed.push({
                             ...itemA,
@@ -1391,12 +1368,10 @@ class RipReapplyBin {
                 } else {
                     for (let i = groupItems.length - 1; i >= 0; i--) {
                         const item = groupItems[i];
-                        // 잔재 >= 부품크기 이면 배치 (톱날 두께 무관)
-                        if (rect.y + rect.height - currentY >= item.height) {
-                            const kerfBefore = currentY === rect.y ? 0 : this.kerf;
-                            // 타이트핏: kerf 추가 시 판재 초과하면 kerf 없이 배치 (마지막 절단 표시 위해)
-                            const y = (currentY + kerfBefore + item.height <= rect.y + rect.height)
-                                ? currentY + kerfBefore : currentY;
+                        const neededHeight = currentY === rect.y ? item.height : item.height + this.kerf;
+
+                        if (currentY + neededHeight <= rect.y + rect.height) {
+                            const y = currentY === rect.y ? rect.y : currentY + this.kerf;
 
                             placed.push({
                                 ...item,
@@ -1509,13 +1484,10 @@ class RipReapplyBin {
             groupItems.sort((a, b) => b.width - a.width);
 
             while (groupItems.length > 0) {
-                // 잔재 >= 스트립 높이이면 배치 (톱날 두께 무관)
-                if (rect.y + rect.height - currentY < stripHeight) break;
+                const neededHeight = currentY === rect.y ? stripHeight : stripHeight + this.kerf;
+                if (currentY + neededHeight > rect.y + rect.height) break;
 
-                const kerfBefore = currentY === rect.y ? 0 : this.kerf;
-                // 타이트핏: kerf 추가 시 판재 초과하면 kerf 없이 배치 (마지막 절단 표시 위해)
-                const stripY = (currentY + kerfBefore + stripHeight <= rect.y + rect.height)
-                    ? currentY + kerfBefore : currentY;
+                const stripY = currentY === rect.y ? rect.y : currentY + this.kerf;
                 let currentX = rect.x;
                 const placedInStrip = [];
 
@@ -2019,18 +1991,15 @@ class StripBin {
             groupItems.sort((a, b) => b.width - a.width);
 
             while (groupItems.length > 0) {
-                // 잔재 >= 스트립 높이이면 배치 (톱날 두께 무관)
-                const canFitStrip = this.height - this.currentY >= stripHeight;
+                const spaceNeeded = this.currentY === 0 ? stripHeight : stripHeight + this.kerf;
+                const canFitStrip = this.currentY + spaceNeeded <= this.height;
 
                 if (!canFitStrip) {
                     unplaced.push(...groupItems);
                     break;
                 }
 
-                const kerfBefore = this.currentY === 0 ? 0 : this.kerf;
-                // 타이트핏: kerf 추가 시 판재 초과하면 kerf 없이 배치 (마지막 절단 표시 위해)
-                const stripY = (this.currentY + kerfBefore + stripHeight <= this.height)
-                    ? this.currentY + kerfBefore : this.currentY;
+                const stripY = this.currentY === 0 ? 0 : this.currentY + this.kerf;
                 let currentX = 0;
                 const placedInStrip = [];
 
@@ -2129,15 +2098,12 @@ class StripEfficiencyBin {
             groupItems.sort((a, b) => b.width - a.width);
 
             while (groupItems.length > 0) {
-                // 잔재 >= 스트립 높이이면 배치 (톱날 두께 무관)
-                const canFitStrip = this.height - currentY >= stripHeight;
+                const spaceNeeded = currentY === 0 ? stripHeight : stripHeight + this.kerf;
+                const canFitStrip = currentY + spaceNeeded <= this.height;
 
                 if (!canFitStrip) break;
 
-                const kerfBefore = currentY === 0 ? 0 : this.kerf;
-                // 타이트핏: kerf 추가 시 판재 초과하면 kerf 없이 배치 (마지막 절단 표시 위해)
-                const stripY = (currentY + kerfBefore + stripHeight <= this.height)
-                    ? currentY + kerfBefore : currentY;
+                const stripY = currentY === 0 ? 0 : currentY + this.kerf;
                 let currentX = 0;
                 const placedInStrip = [];
                 let stripMaxWidth = 0;
