@@ -33,11 +33,11 @@ body {
 
 :root {
     /* Primary Colors */
-    --color-primary-50: #E3F2FD;
-    --color-primary-100: #BBDEFB;
-    --color-primary-500: #2196F3;
-    --color-primary-700: #1976D2;
-    --color-primary-900: #0D47A1;
+    --color-primary-50: #F0FFF4;
+    --color-primary-100: #C6F6D5;
+    --color-primary-500: #48BB78;
+    --color-primary-700: #123628;
+    --color-primary-900: #0a2318;
 
     /* Neutral Colors */
     --color-neutral-0: #FFFFFF;

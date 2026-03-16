@@ -672,7 +672,7 @@ class WoodcutterApp {
 
             // 헤더
             const header = document.createElement('div');
-            header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white;';
+            header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 12px; background: linear-gradient(135deg, #48BB78 0%, #123628 100%); border-radius: 8px; color: white;';
 
             const title = count > 1 ? `패턴 ${index + 1} (${count}장 동일)` : `패턴 ${index + 1}`;
             header.innerHTML = `

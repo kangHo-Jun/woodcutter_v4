@@ -65,16 +65,16 @@
                     <input type="checkbox" id="considerGrain">
                     <label for="considerGrain">나무결 방향</label>
                 </div>
-                <!-- 트리밍 옵션 (고급설정에서 이동) -->
-                <div class="form-row" style="margin-top: 12px; align-items: center;">
-                    <div class="checkbox-group" style="flex: 1; margin-bottom: 0;">
+                <!-- 트리밍 옵션 -->
+                <div class="form-row trim-row">
+                    <div class="checkbox-group trim-checkbox">
                         <input type="checkbox" id="enableTrim" checked>
                         <label for="enableTrim">전단여부</label>
                     </div>
-                    <div class="form-group mb-0" style="flex: 1; display: flex; align-items: center; gap: 8px;">
-                        <label for="trimMargin" style="margin-bottom: 0; white-space: nowrap;">여백</label>
-                        <input type="number" id="trimMargin" value="5" min="0" max="50" style="width: 70px;">
-                        <span style="font-size: 12px; color: #666;">mm</span>
+                    <div class="form-group mb-0 trim-margin-group">
+                        <label for="trimMargin" class="trim-label">여백</label>
+                        <input type="number" id="trimMargin" value="5" min="0" max="50" class="trim-input">
+                        <span class="trim-unit">mm</span>
                     </div>
                 </div>
             </section>
@@ -99,12 +99,12 @@
                     </div>
                 </div>
 
-                <div class="form-row mb-3">
-                    <div class="checkbox-group" style="flex: 1;">
+                <div class="form-row mb-3 part-actions-row">
+                    <div class="checkbox-group part-rotate-check">
                         <input type="checkbox" id="partRotatable" checked>
                         <label for="partRotatable">회전 가능</label>
                     </div>
-                    <button class="btn btn-primary" id="addPartBtn" style="flex: 1;">
+                    <button class="btn btn-primary part-add-btn" id="addPartBtn">
                         부품 추가
                     </button>
                 </div>
@@ -130,14 +130,14 @@
                 </div>
 
                 <div class="form-row mt-3">
-                    <button class="btn btn-danger btn-sm" id="clearPartsBtn" style="flex: 1;">
+                    <button class="btn btn-danger btn-sm btn-full" id="clearPartsBtn">
                         전체 삭제
                     </button>
                 </div>
             </section>
 
             <!-- Advanced Settings (Accordion) -->
-            <section class="section" style="padding: 0;">
+            <section class="section section-accordion">
                 <div class="accordion" id="advancedSettings">
                     <div class="accordion-header">
                         <span>고급 설정</span>
@@ -160,7 +160,7 @@
             </section>
 
             <!-- Cost Info -->
-            <section class="section" style="padding: 0;">
+            <section class="section section-accordion">
                 <div class="accordion" id="costSettings">
                     <div class="accordion-header">
                         <span>원가 설정</span>
@@ -169,10 +169,10 @@
                     <div class="accordion-body">
                         <div class="form-group mb-0">
                             <label>절단 단가 (자동 계산)</label>
-                            <div style="padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                            <div class="cost-display">
                                 <span id="autoCutPrice">1,500원/회</span>
                             </div>
-                            <p style="font-size: 11px; color: #999; margin-top: 8px;">
+                            <p class="cost-hint">
                                 12T 이하: 1,000원 | 14.5~23T: 1,500원 | 24T 이상: 2,000원
                             </p>
                         </div>
@@ -189,7 +189,7 @@
         <!-- Center Panel: Preview -->
         <main class="center-panel" id="centerPanel">
             <!-- Controls -->
-            <div class="canvas-controls-top" id="canvasControlsTop" style="display: none; margin-bottom: 16px;">
+            <div class="canvas-controls-top" id="canvasControlsTop" style="display: none;">
                 <button class="btn btn-secondary" id="previewPdfBtn">미리보기</button>
                 <button class="btn btn-primary" id="downloadPdfBtn">PDF 다운로드</button>
                 <div class="share-dropdown">
@@ -204,7 +204,7 @@
 
             <!-- Scrollable Canvas List -->
             <div class="canvas-scroll-container" id="canvasScrollContainer"
-                style="display: none; width: 100%; max-width: 800px; overflow-y: auto; max-height: calc(100vh - 200px);">
+                style="display: none;">
                 <!-- 그룹별 대표 도면이 여기에 동적으로 생성됨 -->
             </div>
 
@@ -240,7 +240,7 @@
             <section class="section">
                 <h2 class="section-title">부품 배치 현황</h2>
                 <div id="labelGroupsList">
-                    <p class="empty-state-text text-center" style="padding: 20px;">
+                    <p class="empty-state-text text-center empty-state-padded">
                         계산을 실행하면 결과가 표시됩니다
                     </p>
                 </div>
@@ -267,6 +267,41 @@
 
     <!-- Main Application Script -->
     <script src="js/main-unified.js"></script>
+
+    <!-- UI Layer: Quick Win Enhancements -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const partWidth = document.getElementById('partWidth');
+            const addPartBtn = document.getElementById('addPartBtn');
+            const clearPartsBtn = document.getElementById('clearPartsBtn');
+            const partList = document.getElementById('partListBody');
+
+            // 1. Initial Focus
+            if (partWidth) setTimeout(() => partWidth.focus(), 500);
+
+            // 2. Clear All Button State Management
+            const updateClearBtnState = () => {
+                if (!clearPartsBtn || !partList) return;
+                const hasParts = partList.querySelectorAll('tr:not(.empty-row)').length > 0;
+                clearPartsBtn.disabled = !hasParts;
+                clearPartsBtn.style.opacity = hasParts ? '1' : '0.5';
+            };
+
+            // Watch for changes in the parts table
+            const observer = new MutationObserver(updateClearBtnState);
+            if (partList) observer.observe(partList, { childList: true });
+            
+            // Initial check
+            updateClearBtnState();
+
+            // 3. Ensuring focus remains on partWidth after Add/Clear actions
+            [addPartBtn, clearPartsBtn].forEach(btn => {
+                if (btn) btn.addEventListener('click', () => {
+                    setTimeout(() => { if (partWidth) partWidth.focus(); }, 100);
+                });
+            });
+        });
+    </script>
 </body>
 
 </html>
