@@ -443,23 +443,17 @@ class WoodcutterApp {
 
         tbody.querySelectorAll('.delete-btn').forEach(btn => {
             btn.addEventListener('mousedown', (e) => {
-                e.preventDefault(); // 포커스 잃음 방지
+                e.preventDefault();
             });
             btn.addEventListener('click', (e) => {
-                const index = parseInt(e.currentTarget.dataset.index);
-                if (isNaN(index)) return;
-
-                // 편집기가 열려 있다면 DOM 업데이트를 유도하기 위해 blur 강제 발생
-                if (document.activeElement && document.activeElement.classList.contains('editable-cell')) {
-                    document.activeElement.blur();
+                const row = e.target.closest('tr');
+                if (!row) return;
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                const index = rows.indexOf(row);
+                if (index < 0) return;
+                if (confirm('이 부품을 삭제하시겠습니까?')) {
+                    this.state.removePart(index);
                 }
-
-                // blur 처리로 일어날 수 있는 DOM 재생성 대기 후 confirm 실행
-                setTimeout(() => {
-                    if (confirm('이 부품을 삭제하시겠습니까?')) {
-                        this.state.removePart(index);
-                    }
-                }, 10);
             });
         });
     }
@@ -486,12 +480,6 @@ class WoodcutterApp {
         }
 
         const part = this.state.cuttingList[index];
-
-        // 값이 이전과 동일한 경우 불필요한 이벤트/DOM 업데이트를 방지
-        if (part[field] === value) {
-            cell.textContent = value;
-            return;
-        }
 
         let validation;
         if (field === 'width') {

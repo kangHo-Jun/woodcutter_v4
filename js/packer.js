@@ -308,11 +308,20 @@ class GuillotinePacker {
         if (!result || !Array.isArray(result.unplaced) || result.unplaced.length === 0) {
             return false;
         }
-        if (!Array.isArray(result.freeRects) || result.freeRects.length === 0) {
-            return false;
+
+        let sourceFreeRects = Array.isArray(result.freeRects) ? result.freeRects : [];
+
+        // freeRects가 비어있으면 배치된 부품 기준으로 잔재 공간을 직접 계산
+        if (sourceFreeRects.length === 0) {
+            if (!result.placed || result.placed.length === 0) return false;
+            const maxY = Math.max(...result.placed.map(p => p.y + p.height));
+            const residualY = maxY + this.kerf;
+            const residualH = this.binHeight - residualY;
+            if (residualH <= 0) return false;
+            sourceFreeRects = [{ x: 0, y: residualY, width: this.binWidth, height: residualH }];
         }
 
-        const freeRects = [...result.freeRects]
+        const freeRects = [...sourceFreeRects]
             .filter(rect => rect.width > 0 && rect.height > 0)
             .sort((a, b) => (b.width * b.height) - (a.width * a.height));
 
