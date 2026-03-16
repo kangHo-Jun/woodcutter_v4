@@ -210,8 +210,28 @@
 
             <!-- Empty State -->
             <div id="emptyState" class="empty-state">
-                <div class="empty-state-icon">📐</div>
-                <div class="empty-state-text">부품을 추가하고 최적화 계산을 실행하세요</div>
+                <div class="empty-state-illustration">
+                    <svg width="140" height="116" viewBox="0 0 140 116" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <!-- Board outline -->
+                        <rect x="6" y="6" width="128" height="104" rx="6" stroke="#48BB78" stroke-width="2.5"/>
+                        <!-- Parts -->
+                        <rect x="14" y="14" width="42" height="28" rx="3" fill="#48BB78" fill-opacity="0.18"/>
+                        <rect x="64" y="14" width="62" height="28" rx="3" fill="#48BB78" fill-opacity="0.28"/>
+                        <rect x="14" y="50" width="72" height="26" rx="3" fill="#48BB78" fill-opacity="0.22"/>
+                        <rect x="94" y="50" width="32" height="26" rx="3" fill="#48BB78" fill-opacity="0.32"/>
+                        <rect x="14" y="84" width="52" height="22" rx="3" fill="#48BB78" fill-opacity="0.18"/>
+                        <rect x="74" y="84" width="52" height="22" rx="3" fill="#48BB78" fill-opacity="0.24"/>
+                        <!-- Horizontal cut lines -->
+                        <line x1="6" y1="50" x2="134" y2="50" stroke="#48BB78" stroke-width="1.5" stroke-dasharray="5 3.5" stroke-opacity="0.55"/>
+                        <line x1="6" y1="84" x2="134" y2="84" stroke="#48BB78" stroke-width="1.5" stroke-dasharray="5 3.5" stroke-opacity="0.55"/>
+                        <!-- Vertical cut lines -->
+                        <line x1="64" y1="6" x2="64" y2="50" stroke="#48BB78" stroke-width="1.5" stroke-dasharray="5 3.5" stroke-opacity="0.55"/>
+                        <line x1="94" y1="50" x2="94" y2="84" stroke="#48BB78" stroke-width="1.5" stroke-dasharray="5 3.5" stroke-opacity="0.55"/>
+                        <line x1="74" y1="84" x2="74" y2="110" stroke="#48BB78" stroke-width="1.5" stroke-dasharray="5 3.5" stroke-opacity="0.55"/>
+                    </svg>
+                </div>
+                <p class="empty-state-title">재단 도면이 여기에 표시됩니다</p>
+                <p class="empty-state-text">부품을 추가하고 최적화 계산을 실행하세요</p>
             </div>
         </main>
 
