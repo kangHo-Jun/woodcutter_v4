@@ -543,7 +543,7 @@ class WoodcutterApp {
 
             const trimEnabled = settings.enableTrim === true;
             const trimMargin = trimEnabled ? (parseFloat(settings.trimMargin) || 0) : 0;
-            const effectiveBoardWidth = this.state.boardSpec.width - (trimMargin * 2);
+            const effectiveBoardWidth = this.state.boardSpec.width;
             const effectiveBoardHeight = this.state.boardSpec.height - (trimMargin * 2);
 
             if (trimEnabled && (effectiveBoardWidth <= 0 || effectiveBoardHeight <= 0)) {
