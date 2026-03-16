@@ -85,7 +85,7 @@ class GuillotinePacker {
 
             if (result.placed.length === 0) break;
 
-            if (result.unplaced.length > 0) {
+            if (this.isTrimEnabled() && result.unplaced.length > 0) {
                 this.tryPlaceResidualInAdaptive(result);
             }
 
@@ -288,6 +288,22 @@ class GuillotinePacker {
         return (totalUsed / totalArea) * 100;
     }
 
+    isTrimEnabled() {
+        if (typeof window === 'undefined') return false;
+        if (typeof window.__WOODCUTTER_TRIM_ENABLED__ === 'boolean') {
+            return window.__WOODCUTTER_TRIM_ENABLED__;
+        }
+        if (window.SettingsManager && typeof window.SettingsManager.readFromUI === 'function') {
+            try {
+                const settings = window.SettingsManager.readFromUI();
+                return settings && settings.enableTrim === true;
+            } catch (error) {
+                return false;
+            }
+        }
+        return false;
+    }
+
     tryPlaceResidualInAdaptive(result) {
         if (!result || !Array.isArray(result.unplaced) || result.unplaced.length === 0) {
             return false;
@@ -311,7 +327,7 @@ class GuillotinePacker {
                 }
 
                 for (const orient of orientations) {
-                    if (orient.w <= rect.width && orient.h <= rect.height) {
+                    if (orient.w <= rect.width && orient.h <= rect.height + this.kerf) {
                         result.placed.push({
                             ...item,
                             x: rect.x,
