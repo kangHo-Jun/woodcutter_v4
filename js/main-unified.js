@@ -129,22 +129,9 @@ class WoodcutterApp {
         if (previewPdfBtn) {
             previewPdfBtn.addEventListener('click', () => this.handlePdfPreview());
         }
-        if (shareBtn) {
-            shareBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.toggleShareDropdown();
-            });
-        }
 
         // Share dropdown options
         const shareOptions = document.querySelectorAll('.share-option');
-        shareOptions.forEach(option => {
-            option.addEventListener('click', (e) => {
-                const type = e.target.dataset.share;
-                this.handleShareOption(type);
-                this.closeShareDropdown();
-            });
-        });
 
         // Close dropdown on outside click
         document.addEventListener('click', () => this.closeShareDropdown());
@@ -1000,112 +987,6 @@ class WoodcutterApp {
             console.error('PDF 생성 오류:', error);
             alert('PDF 생성 중 오류가 발생했습니다');
         }
-    }
-
-    /**
-     * 공유 드롭다운 토글
-     */
-    toggleShareDropdown() {
-        const dropdown = document.getElementById('shareDropdownMenu');
-        if (dropdown) {
-            dropdown.classList.toggle('show');
-        }
-    }
-
-    /**
-     * 공유 드롭다운 닫기
-     */
-    closeShareDropdown() {
-        const dropdown = document.getElementById('shareDropdownMenu');
-        if (dropdown) {
-            dropdown.classList.remove('show');
-        }
-    }
-
-    /**
-     * 공유 옵션 처리
-     */
-    handleShareOption(type) {
-        if (!this.state.result) {
-            alert('먼저 최적화 계산을 실행하세요');
-            return;
-        }
-
-        const shareData = this.generateShareText();
-
-        switch (type) {
-            case 'email':
-                this.shareViaEmail(shareData);
-                break;
-            case 'sms':
-                this.shareViaSMS(shareData);
-                break;
-            case 'copy':
-                this.copyToClipboard(shareData);
-                break;
-        }
-    }
-
-    /**
-     * 이메일로 공유
-     */
-    shareViaEmail(text) {
-        const subject = encodeURIComponent('대산 Ai - 재단 계획');
-        const body = encodeURIComponent(text);
-        window.location.href = `mailto:?subject=${subject}&body=${body}`;
-    }
-
-    /**
-     * 문자(SMS)로 공유
-     */
-    shareViaSMS(text) {
-        const body = encodeURIComponent(text);
-        // iOS: sms:&body=, Android: sms:?body=
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        const separator = isIOS ? '&' : '?';
-        window.location.href = `sms:${separator}body=${body}`;
-    }
-
-    /**
-     * 공유용 텍스트 생성
-     */
-    generateShareText() {
-        const costInfo = this.state.costInfo;
-        const result = this.state.result;
-        const labeledGroups = this.state.labeledGroups;
-
-        let text = `[대산 Ai 재단 계획]\n`;
-        text += `판재: ${this.state.boardSpec.width}×${this.state.boardSpec.height}mm\n`;
-        text += `총 판재수: ${result.bins.length}장\n`;
-        text += `재단 횟수: ${costInfo.totalCuts}회\n`;
-        text += `총 재단비: ${costInfo.totalCuttingCost.toLocaleString('ko-KR')}원\n`;
-        text += `[부품 목록]\n`;
-        if (labeledGroups && labeledGroups.length > 0) {
-            labeledGroups.forEach(g => {
-                text += `${g.label}: ${g.width}×${g.height}mm - ${g.count}개\n`;
-            });
-        }
-        return text;
-    }
-
-    /**
-     * 클립보드에 복사
-     */
-    copyToClipboard(text) {
-        navigator.clipboard.writeText(text).then(() => {
-            alert('클립보드에 복사되었습니다!');
-        }).catch(() => {
-            // Fallback
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            textarea.style.position = 'fixed';
-            textarea.style.opacity = '0';
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-            alert('클립보드에 복사되었습니다!');
-        });
     }
 
     /**
