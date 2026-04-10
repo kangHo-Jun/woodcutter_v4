@@ -723,14 +723,13 @@ class WoodcutterApp {
         const trimMargin = trimEnabled ? (parseFloat(trimSettings.trimMargin) || 0) : 0;
         const boardHeight = this.state.boardSpec.height - trimMargin;
         const maxWidth = 700;
-        const scale = maxWidth / boardWidth;
+        const padding = 50;
+        const drawScale = (maxWidth - padding * 2) / boardWidth;
 
         canvas.width = maxWidth;
-        canvas.height = boardHeight * scale;
+        canvas.height = boardHeight * drawScale + padding * 2;
 
         const ctx = canvas.getContext('2d');
-        const padding = 50;
-        const drawScale = (canvas.width - padding * 2) / boardWidth;
 
         // 배경
         ctx.fillStyle = '#FFFFFF';
