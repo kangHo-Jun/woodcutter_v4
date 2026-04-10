@@ -130,11 +130,6 @@ class WoodcutterApp {
             previewPdfBtn.addEventListener('click', () => this.handlePdfPreview());
         }
 
-        // Share dropdown options
-        const shareOptions = document.querySelectorAll('.share-option');
-
-        // Close dropdown on outside click
-        document.addEventListener('click', () => this.closeShareDropdown());
 
         // Header buttons
         const newBtn = document.getElementById('newBtn');
