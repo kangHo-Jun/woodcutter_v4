@@ -536,6 +536,9 @@ class WoodcutterApp {
             );
 
             const considerGrain = this.state.boardSpec.considerGrain;
+            const boardW = trimEnabled ? effectiveBoardWidth : this.state.boardSpec.width;
+            const boardH = trimEnabled ? effectiveBoardHeight : this.state.boardSpec.height;
+
             const items = this.state.cuttingList.map(part => {
                 // 나무결 ON: 큰 값을 width(x축=길이방향)로 강제 배치
                 const pw = considerGrain ? Math.max(part.width, part.height) : part.width;
@@ -547,6 +550,14 @@ class WoodcutterApp {
                     rotatable: part.rotatable && !considerGrain
                 };
             });
+
+            // 스왑 후 치수 기준 판재 초과 체크
+            const oversized = items.filter(item => item.width > boardW || item.height > boardH);
+            if (oversized.length > 0) {
+                calculateBtn.textContent = '최적화 계산';
+                alert(`판재 크기를 초과하는 부품이 ${oversized.length}종 있습니다. 치수를 확인하세요.`);
+                return;
+            }
 
             // cutDirection: 'horizontal' | 'auto'
             const mode = settings.cutDirection || 'auto';
