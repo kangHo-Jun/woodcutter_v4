@@ -540,9 +540,9 @@ class WoodcutterApp {
             const boardH = trimEnabled ? effectiveBoardHeight : this.state.boardSpec.height;
 
             const items = this.state.cuttingList.map(part => {
-                // 나무결 ON: 큰 값을 width(x축=길이방향)로 강제 배치
-                const pw = considerGrain ? Math.max(part.width, part.height) : part.width;
-                const ph = considerGrain ? Math.min(part.width, part.height) : part.height;
+                // 나무결 ON: 작은값 → width(x축=폭), 큰값 → height(y축=길이)
+                const pw = considerGrain ? Math.min(part.width, part.height) : part.width;
+                const ph = considerGrain ? Math.max(part.width, part.height) : part.height;
                 return {
                     width: pw,
                     height: ph,
