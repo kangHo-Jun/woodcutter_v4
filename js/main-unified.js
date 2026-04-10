@@ -538,11 +538,19 @@ class WoodcutterApp {
             const considerGrain = this.state.boardSpec.considerGrain;
             const boardW = trimEnabled ? effectiveBoardWidth : this.state.boardSpec.width;
             const boardH = trimEnabled ? effectiveBoardHeight : this.state.boardSpec.height;
+            // 판재의 긴 축/짧은 축 판단
+            const boardLongIsX = boardW >= boardH;
+            const boardLong  = Math.max(boardW, boardH);
+            const boardShort = Math.min(boardW, boardH);
 
             const items = this.state.cuttingList.map(part => {
-                // 나무결 ON: 작은값 → width(x축=폭), 큰값 → height(y축=길이)
-                const pw = considerGrain ? Math.min(part.width, part.height) : part.width;
-                const ph = considerGrain ? Math.max(part.width, part.height) : part.height;
+                // 나무결 ON: 부품 긴값 → 판재 긴축, 부품 짧은값 → 판재 짧은축
+                const pw = considerGrain
+                    ? (boardLongIsX ? Math.max(part.width, part.height) : Math.min(part.width, part.height))
+                    : part.width;
+                const ph = considerGrain
+                    ? (boardLongIsX ? Math.min(part.width, part.height) : Math.max(part.width, part.height))
+                    : part.height;
                 return {
                     width: pw,
                     height: ph,
@@ -551,11 +559,10 @@ class WoodcutterApp {
                 };
             });
 
-            // 스왑 후 치수 기준 판재 초과 체크
-            // 큰값 > 판재 길이(boardW) 또는 작은값 > 판재 폭(boardH) 이면 초과
+            // 스왑 후 치수 기준 판재 초과 체크 (긴축/짧은축 기준)
             const oversized = items.filter(item =>
-                Math.max(item.width, item.height) > boardH ||
-                Math.min(item.width, item.height) > boardW
+                Math.max(item.width, item.height) > boardLong ||
+                Math.min(item.width, item.height) > boardShort
             );
             if (oversized.length > 0) {
                 calculateBtn.disabled = false;
