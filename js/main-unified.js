@@ -311,26 +311,24 @@ class WoodcutterApp {
         const qty = parseInt(partQtyEl.value) || 1;
         const rotatable = partRotatableEl ? partRotatableEl.checked : true;
 
-        const widthCheck = Validator.validatePartWidth(width, this.state.boardSpec.width);
-        const heightCheck = Validator.validatePartHeight(height, this.state.boardSpec.height);
-        const qtyCheck = Validator.validatePartQty(qty);
-
+        // 최솟값(10mm) 및 숫자 여부만 체크 — 판재 상한 체크는 계산 시 수행
         let hasError = false;
 
-        if (!widthCheck.valid) {
-            Validator.showError(partWidthEl, widthCheck.message);
+        if (!width || width < 10) {
+            Validator.showError(partWidthEl, '부품 폭은 10mm 이상이어야 합니다');
             hasError = true;
         } else {
             Validator.clearError(partWidthEl);
         }
 
-        if (!heightCheck.valid) {
-            Validator.showError(partHeightEl, heightCheck.message);
+        if (!height || height < 10) {
+            Validator.showError(partHeightEl, '부품 높이는 10mm 이상이어야 합니다');
             hasError = true;
         } else {
             Validator.clearError(partHeightEl);
         }
 
+        const qtyCheck = Validator.validatePartQty(qty);
         if (!qtyCheck.valid) {
             Validator.showError(partQtyEl, qtyCheck.message);
             hasError = true;
@@ -360,7 +358,7 @@ class WoodcutterApp {
         if (parts.length === 0) {
             tbody.innerHTML = `
                 <tr class="empty-row">
-                    <td colspan="5">부품을 추가하세요</td>
+                    <td colspan="4">부품을 추가하세요</td>
                 </tr>
             `;
             return;
@@ -368,8 +366,7 @@ class WoodcutterApp {
 
         const html = parts.map((part, index) => `
             <tr>
-                <td contenteditable="true" data-index="${index}" data-field="width" class="editable-cell">${part.width}</td>
-                <td contenteditable="true" data-index="${index}" data-field="height" class="editable-cell">${part.height}</td>
+                <td contenteditable="true" data-index="${index}" data-field="dimensions" class="editable-cell">${part.width}×${part.height}</td>
                 <td contenteditable="true" data-index="${index}" data-field="qty" class="editable-cell">${part.qty}</td>
                 <td>${part.rotatable ? 'O' : 'X'}</td>
                 <td>
@@ -384,11 +381,9 @@ class WoodcutterApp {
             cell.addEventListener('focus', (e) => {
                 const field = e.target.dataset.field;
                 const text = e.target.textContent;
-                // 수량은 정수만, 폭/높이는 소수점 허용
+                // 수량은 정수만, 치수는 숫자/소수점/× 허용
                 if (field === 'qty') {
                     e.target.textContent = text.replace(/[^0-9]/g, '');
-                } else {
-                    e.target.textContent = text.replace(/[^0-9.]/g, '');
                 }
                 const range = document.createRange();
                 range.selectNodeContents(e.target);
@@ -403,16 +398,13 @@ class WoodcutterApp {
                     e.target.blur();
                 }
                 const field = e.target.dataset.field;
-                // 수량은 정수만, 폭/높이는 소수점 1자리 허용
                 if (field === 'qty') {
                     if (e.key.length === 1 && !/[0-9]/.test(e.key)) {
                         e.preventDefault();
                     }
-                } else {
-                    // 소수점은 한 번만 입력 가능
-                    if (e.key === '.' && e.target.textContent.includes('.')) {
-                        e.preventDefault();
-                    } else if (e.key.length === 1 && !/[0-9.]/.test(e.key)) {
+                } else if (field === 'dimensions') {
+                    // 숫자, 소수점, ×(구분자) 허용
+                    if (e.key.length === 1 && !/[0-9.×x\*]/.test(e.key)) {
                         e.preventDefault();
                     }
                 }
@@ -437,15 +429,6 @@ class WoodcutterApp {
     handleCellEdit(cell) {
         const index = parseInt(cell.dataset.index);
         const field = cell.dataset.field;
-        // 수량은 정수, 폭/높이는 소수점 1자리까지
-        let value;
-        if (field === 'qty') {
-            value = parseInt(cell.textContent.replace(/[^0-9]/g, '')) || 0;
-        } else {
-            value = parseFloat(cell.textContent.replace(/[^0-9.]/g, '')) || 0;
-            // 소수점 1자리로 반올림
-            value = Math.round(value * 10) / 10;
-        }
 
         if (isNaN(index) || index < 0 || index >= this.state.cuttingList.length) {
             this.renderPartsList();
@@ -454,22 +437,31 @@ class WoodcutterApp {
 
         const part = this.state.cuttingList[index];
 
-        let validation;
-        if (field === 'width') {
-            validation = Validator.validatePartWidth(value, this.state.boardSpec.width);
-        } else if (field === 'height') {
-            validation = Validator.validatePartHeight(value, this.state.boardSpec.height);
+        if (field === 'dimensions') {
+            // "300×900" 또는 "300x900" 또는 "300*900" 형식 파싱
+            const raw = cell.textContent.trim();
+            const parts = raw.split(/[×x\*]/);
+            const w = Math.round((parseFloat(parts[0]) || 0) * 10) / 10;
+            const h = Math.round((parseFloat(parts[1]) || 0) * 10) / 10;
+
+            if (!w || !h || w < 10 || h < 10) {
+                alert('치수 형식이 올바르지 않습니다. 예: 300×900');
+                this.renderPartsList();
+                return;
+            }
+            part.width = w;
+            part.height = h;
         } else if (field === 'qty') {
-            validation = Validator.validatePartQty(value);
+            const value = parseInt(cell.textContent.replace(/[^0-9]/g, '')) || 0;
+            const validation = Validator.validatePartQty(value);
+            if (!validation.valid) {
+                alert(validation.message);
+                this.renderPartsList();
+                return;
+            }
+            part.qty = value;
         }
 
-        if (!validation.valid) {
-            alert(validation.message);
-            this.renderPartsList();
-            return;
-        }
-
-        part[field] = value;
         this.state.update('cuttingList', this.state.cuttingList);
     }
 
@@ -543,12 +535,18 @@ class WoodcutterApp {
                 settings.kerf
             );
 
-            const items = this.state.cuttingList.map(part => ({
-                width: part.width,
-                height: part.height,
-                qty: part.qty,
-                rotatable: part.rotatable && !this.state.boardSpec.considerGrain
-            }));
+            const considerGrain = this.state.boardSpec.considerGrain;
+            const items = this.state.cuttingList.map(part => {
+                // 나무결 ON: 큰 값을 width(x축=길이방향)로 강제 배치
+                const pw = considerGrain ? Math.max(part.width, part.height) : part.width;
+                const ph = considerGrain ? Math.min(part.width, part.height) : part.height;
+                return {
+                    width: pw,
+                    height: ph,
+                    qty: part.qty,
+                    rotatable: part.rotatable && !considerGrain
+                };
+            });
 
             // cutDirection: 'horizontal' | 'auto'
             const mode = settings.cutDirection || 'auto';
