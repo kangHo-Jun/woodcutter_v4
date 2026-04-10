@@ -63,18 +63,13 @@
                 </div>
                 <div class="checkbox-group">
                     <input type="checkbox" id="considerGrain">
-                    <label for="considerGrain">나무결 방향</label>
+                    <label for="considerGrain">나무결 방향 고려 (집성판, 자작합판 등)</label>
                 </div>
                 <!-- 트리밍 옵션 -->
                 <div class="form-row trim-row">
                     <div class="checkbox-group trim-checkbox">
-                        <input type="checkbox" id="enableTrim" checked>
+                        <input type="checkbox" id="enableTrim" checked disabled>
                         <label for="enableTrim">전단여부</label>
-                    </div>
-                    <div class="form-group mb-0 trim-margin-group">
-                        <label for="trimMargin" class="trim-label">여백</label>
-                        <input type="number" id="trimMargin" value="5" min="0" max="50" class="trim-input">
-                        <span class="trim-unit">mm</span>
                     </div>
                 </div>
             </section>
@@ -133,50 +128,6 @@
                     <button class="btn btn-danger btn-sm btn-full" id="clearPartsBtn">
                         전체 삭제
                     </button>
-                </div>
-            </section>
-
-            <!-- Advanced Settings (Accordion) -->
-            <section class="section section-accordion">
-                <div class="accordion" id="advancedSettings">
-                    <div class="accordion-header">
-                        <span>고급 설정</span>
-                        <span class="accordion-icon">▼</span>
-                    </div>
-                    <div class="accordion-body">
-                        <div class="form-group">
-                            <label for="kerfInput">톱날 두께 (mm)</label>
-                            <input type="number" id="kerfInput" value="4.2" min="0" max="10" step="0.1">
-                        </div>
-                        <div class="form-group">
-                            <label for="cutDirection">최적화 방식</label>
-                            <select id="cutDirection">
-                                <option value="horizontal">가로 우선 (절단 편리)</option>
-                                <option value="auto" selected>자동 (효율 우선)</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Cost Info -->
-            <section class="section section-accordion">
-                <div class="accordion" id="costSettings">
-                    <div class="accordion-header">
-                        <span>원가 설정</span>
-                        <span class="accordion-icon">▼</span>
-                    </div>
-                    <div class="accordion-body">
-                        <div class="form-group mb-0">
-                            <label>절단 단가 (자동 계산)</label>
-                            <div class="cost-display">
-                                <span id="autoCutPrice">1,500원/회</span>
-                            </div>
-                            <p class="cost-hint">
-                                12T 이하: 1,000원 | 14.5~23T: 1,500원 | 24T 이상: 2,000원
-                            </p>
-                        </div>
-                    </div>
                 </div>
             </section>
 
