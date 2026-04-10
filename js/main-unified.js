@@ -238,6 +238,9 @@ class WoodcutterApp {
             } else {
                 partRotatable.disabled = false;
                 partRotatable.checked = true;
+                // 나무결 OFF 전환 시 기존 부품 rotatable 동기화
+                this.state.cuttingList.forEach(part => { part.rotatable = true; });
+                this.state.update('cuttingList', this.state.cuttingList);
             }
         }
     }
