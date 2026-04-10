@@ -552,8 +552,13 @@ class WoodcutterApp {
             });
 
             // 스왑 후 치수 기준 판재 초과 체크
-            const oversized = items.filter(item => item.width > boardW || item.height > boardH);
+            // 큰값 > 판재 길이(boardW) 또는 작은값 > 판재 폭(boardH) 이면 초과
+            const oversized = items.filter(item =>
+                Math.max(item.width, item.height) > boardH ||
+                Math.min(item.width, item.height) > boardW
+            );
             if (oversized.length > 0) {
+                calculateBtn.disabled = false;
                 calculateBtn.textContent = '최적화 계산';
                 alert(`판재 크기를 초과하는 부품이 ${oversized.length}종 있습니다. 치수를 확인하세요.`);
                 return;
@@ -1244,6 +1249,9 @@ class WoodcutterApp {
             if (boardNavSection) boardNavSection.classList.add('hidden');
 
             this.groupCanvases = [];
+
+            const calculateBtn = document.getElementById('calculateBtn');
+            if (calculateBtn) calculateBtn.disabled = false;
 
             console.log('새 프로젝트 시작');
         }
