@@ -621,8 +621,8 @@ class WoodcutterApp {
         // 부품 그룹 표시
         LabelingEngine.displayLabelGroups(this.state.labeledGroups);
 
-        // 그룹별 대표 도면 렌더링
-        this.renderGroupCanvases();
+        // 그룹별 대표 도면 렌더링 (display:block 반영 후 다음 프레임에 실행)
+        requestAnimationFrame(() => this.renderGroupCanvases());
     }
 
     /**
