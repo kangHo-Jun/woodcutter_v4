@@ -741,12 +741,15 @@ class WoodcutterApp {
         const trimEnabled = trimSettings.enableTrim === true;
         const trimMargin = trimEnabled ? (parseFloat(trimSettings.trimMargin) || 0) : 0;
         const boardHeight = this.state.boardSpec.height - trimMargin;
+        const isPortraitBoard = boardWidth < boardHeight;
+        const renderBoardWidth = isPortraitBoard ? boardHeight : boardWidth;
+        const renderBoardHeight = isPortraitBoard ? boardWidth : boardHeight;
         const maxWidth = 700;
         const padding = 50;
-        const drawScale = (maxWidth - padding * 2) / boardWidth;
+        const drawScale = (maxWidth - padding * 2) / renderBoardWidth;
 
         canvas.width = maxWidth;
-        canvas.height = boardHeight * drawScale + padding * 2;
+        canvas.height = renderBoardHeight * drawScale + padding * 2;
 
         const ctx = canvas.getContext('2d');
 
@@ -756,13 +759,13 @@ class WoodcutterApp {
 
         // 판재 배경
         ctx.fillStyle = '#E5C49F';
-        ctx.fillRect(padding, padding, boardWidth * drawScale, boardHeight * drawScale);
+        ctx.fillRect(padding, padding, renderBoardWidth * drawScale, renderBoardHeight * drawScale);
 
 
 
         ctx.strokeStyle = '#4a3424';
         ctx.lineWidth = 2;
-        ctx.strokeRect(padding, padding, boardWidth * drawScale, boardHeight * drawScale);
+        ctx.strokeRect(padding, padding, renderBoardWidth * drawScale, renderBoardHeight * drawScale);
 
         // === 장별 부품 개수 계산 ===
         const partCounts = {};
@@ -785,8 +788,16 @@ class WoodcutterApp {
             }
         });
 
+        const renderedPlaced = bin.placed.map(part => ({
+            source: part,
+            x: isPortraitBoard ? part.y : part.x,
+            y: isPortraitBoard ? part.x : part.y,
+            width: isPortraitBoard ? part.height : part.width,
+            height: isPortraitBoard ? part.width : part.height
+        }));
+
         // 부품 그리기
-        bin.placed.forEach((part, index) => {
+        renderedPlaced.forEach((part, index) => {
             const x = padding + part.x * drawScale;
             const y = padding + part.y * drawScale;
             const w = part.width * drawScale;
@@ -826,7 +837,7 @@ class WoodcutterApp {
             ctx.save();
             // 판재 영역으로 클리핑
             ctx.beginPath();
-            ctx.rect(padding, padding, boardWidth * drawScale, boardHeight * drawScale);
+            ctx.rect(padding, padding, renderBoardWidth * drawScale, renderBoardHeight * drawScale);
             ctx.clip();
 
             ctx.font = 'bold 18px "Inter", sans-serif';
@@ -837,8 +848,8 @@ class WoodcutterApp {
             const spacingY = 150;
             const angle = -Math.PI / 6;
 
-            for (let y = padding - spacingY; y < padding + boardHeight * drawScale + spacingY; y += spacingY) {
-                for (let x = padding - spacingX; x < padding + boardWidth * drawScale + spacingX; x += spacingX) {
+            for (let y = padding - spacingY; y < padding + renderBoardHeight * drawScale + spacingY; y += spacingY) {
+                for (let x = padding - spacingX; x < padding + renderBoardWidth * drawScale + spacingX; x += spacingX) {
                     ctx.save();
                     const offsetX = (Math.floor(y / spacingY) % 2 === 0) ? spacingX / 2 : 0;
                     ctx.translate(x + offsetX, y);
@@ -854,20 +865,21 @@ class WoodcutterApp {
         ctx.fillStyle = '#333';
         ctx.font = '14px "Noto Sans KR", sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`${boardWidth} mm`, padding + (boardWidth * drawScale) / 2, padding - 20);
+        ctx.fillText(`${renderBoardWidth} mm`, padding + (renderBoardWidth * drawScale) / 2, padding - 20);
 
         ctx.save();
-        ctx.translate(padding - 25, padding + (boardHeight * drawScale) / 2);
+        ctx.translate(padding - 25, padding + (renderBoardHeight * drawScale) / 2);
         ctx.rotate(-Math.PI / 2);
-        ctx.fillText(`${boardHeight} mm`, 0, 0);
+        ctx.fillText(`${renderBoardHeight} mm`, 0, 0);
         ctx.restore();
 
         // === 잔여 영역 표시: 가로 최소 잔여 + 세로 최소 잔여 ===
-        const residuals = this.getAxisMinResiduals(bin, boardWidth, boardHeight);
-        const maxX = Math.max(...(bin.placed || []).map(part => part.x + part.width), 0);
-        const maxY = Math.max(...(bin.placed || []).map(part => part.y + part.height), 0);
-        const rightRemnantWidth = Math.max(0, boardWidth - maxX);
-        const bottomRemnantHeight = Math.max(0, boardHeight - maxY);
+        const renderedBin = { placed: renderedPlaced };
+        const residuals = this.getAxisMinResiduals(renderedBin, renderBoardWidth, renderBoardHeight);
+        const maxX = Math.max(...renderedPlaced.map(part => part.x + part.width), 0);
+        const maxY = Math.max(...renderedPlaced.map(part => part.y + part.height), 0);
+        const rightRemnantWidth = Math.max(0, renderBoardWidth - maxX);
+        const bottomRemnantHeight = Math.max(0, renderBoardHeight - maxY);
 
         if (residuals.minHeight > 0 && bottomRemnantHeight > 0) {
             ctx.save();
@@ -877,7 +889,7 @@ class WoodcutterApp {
             ctx.textBaseline = 'middle';
             ctx.fillText(
                 `${Math.round(residuals.minHeight)}mm`,
-                padding + (boardWidth * drawScale) / 2,
+                padding + (renderBoardWidth * drawScale) / 2,
                 padding + (maxY + bottomRemnantHeight / 2) * drawScale
             );
             ctx.restore();
@@ -891,7 +903,7 @@ class WoodcutterApp {
             ctx.textBaseline = 'middle';
             ctx.translate(
                 padding + (maxX + rightRemnantWidth / 2) * drawScale,
-                padding + (boardHeight * drawScale) / 2
+                padding + (renderBoardHeight * drawScale) / 2
             );
             ctx.rotate(-Math.PI / 2);
             ctx.fillText(`${Math.round(residuals.minWidth)}mm`, 0, 0);
