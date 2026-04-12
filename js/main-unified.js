@@ -1239,6 +1239,7 @@ class WoodcutterApp {
             document.getElementById('boardHeight').value = '2440';
             document.getElementById('boardThickness').value = '18';
             document.getElementById('considerGrain').checked = false;
+            document.getElementById('enableTrim').checked = true;
 
             this.renderPartsList();
 
