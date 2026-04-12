@@ -881,32 +881,36 @@ class WoodcutterApp {
         const rightRemnantWidth = Math.max(0, renderBoardWidth - maxX);
         const bottomRemnantHeight = Math.max(0, renderBoardHeight - maxY);
 
-        if (residuals.minHeight > 0 && bottomRemnantHeight > 0) {
-            ctx.save();
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-            ctx.font = 'bold 16px "Noto Sans KR", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(
-                `${Math.round(residuals.minHeight)}mm`,
-                padding + (renderBoardWidth * drawScale) / 2,
-                padding + (maxY + bottomRemnantHeight / 2) * drawScale
-            );
-            ctx.restore();
-        }
-
-        if (residuals.minWidth > 0 && rightRemnantWidth > 0) {
+        if (bottomRemnantHeight > 0) {
             ctx.save();
             ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
             ctx.font = 'bold 16px "Noto Sans KR", sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.translate(
+                padding + (renderBoardWidth * drawScale) / 2,
+                padding + (maxY + bottomRemnantHeight / 2) * drawScale
+            );
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText(
+                `${Math.round(bottomRemnantHeight)}mm`,
+                0,
+                0
+            );
+            ctx.restore();
+        }
+
+        if (rightRemnantWidth > 0) {
+            ctx.save();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.font = 'bold 16px "Noto Sans KR", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(
+                `${Math.round(rightRemnantWidth)}mm`,
                 padding + (maxX + rightRemnantWidth / 2) * drawScale,
                 padding + (renderBoardHeight * drawScale) / 2
             );
-            ctx.rotate(-Math.PI / 2);
-            ctx.fillText(`${Math.round(residuals.minWidth)}mm`, 0, 0);
             ctx.restore();
         }
     }
