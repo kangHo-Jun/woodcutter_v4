@@ -636,6 +636,9 @@ class AdaptiveGuillotineBin {
             }
             cutDetails.push(...(bestAttempt.cutDetails || []));
             currentY = stripStartY + bestAttempt.stripSize;
+            if (currentY < rect.y + rect.height) {
+                cutDetails.push(this.createCutDetail('Y', currentY, rect.x, rect.x + rect.width, rect));
+            }
         }
 
         const bottomY = currentY === rect.y ? rect.y : currentY + this.kerf;
@@ -702,6 +705,9 @@ class AdaptiveGuillotineBin {
             }
             cutDetails.push(...(bestAttempt.cutDetails || []));
             currentX = stripStartX + bestAttempt.stripSize;
+            if (currentX < rect.x + rect.width) {
+                cutDetails.push(this.createCutDetail('X', currentX, rect.y, rect.y + rect.height, rect));
+            }
         }
 
         const rightX = currentX === rect.x ? rect.x : currentX + this.kerf;
