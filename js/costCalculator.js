@@ -142,13 +142,6 @@ class CostCalculator {
             return 0;
         }
 
-        // 짜투리 없음: 유효 판재 면적을 전부 사용한 경우만 인정
-        const usedArea = Number(bin.usedArea) || 0;
-        const totalArea = Number(bin.totalArea) || 0;
-        if (Math.abs(totalArea - usedArea) > 0.01) {
-            return 0;
-        }
-
         const qualifyingWidths = bin.cutDetails
             .filter(detail => detail && detail.axis === 'X' && detail.fullSpan === true)
             .flatMap(detail => Array.isArray(detail.pieceWidthsAfterCut) ? detail.pieceWidthsAfterCut : [])
