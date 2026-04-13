@@ -146,10 +146,21 @@ class CostCalculator {
             return 0;
         }
 
-        const qualifyingWidths = bin.cutDetails
+        const positions = bin.cutDetails
             .filter(detail => detail && detail.fullSpan === true)
-            .map(detail => Array.isArray(detail.pieceWidthsAfterCut) ? detail.pieceWidthsAfterCut[0] : null)
-            .filter(width => Number.isFinite(width) && width >= 90);
+            .map(detail => detail.pos)
+            .filter(pos => Number.isFinite(pos))
+            .sort((a, b) => a - b);
+
+        const kerf = 4.2;
+        const actualWidths = [];
+        let prev = 0;
+        positions.forEach(pos => {
+            actualWidths.push(pos - prev);
+            prev = pos + kerf;
+        });
+
+        const qualifyingWidths = actualWidths.filter(width => Number.isFinite(width) && width >= 90);
 
         if (qualifyingWidths.length === 0) {
             return 0;
