@@ -143,7 +143,7 @@ class CostCalculator {
         }
 
         const qualifyingWidths = bin.cutDetails
-            .filter(detail => detail && detail.axis === 'X' && detail.fullSpan === true)
+            .filter(detail => detail && detail.fullSpan === true)
             .map(detail => Array.isArray(detail.pieceWidthsAfterCut) ? detail.pieceWidthsAfterCut[0] : null)
             .filter(width => Number.isFinite(width) && width >= 90);
 
@@ -165,10 +165,6 @@ class CostCalculator {
         } else {
             fixedPrice = targetWidth >= 100 ? 7000 : 10000;
         }
-
-        console.log('[길게쪽] qualifyingWidths:', qualifyingWidths);
-        console.log('[길게쪽] thickness:', this.getBoardThickness());
-        console.log('[길게쪽] fixedPrice:', fixedPrice);
 
         return fixedPrice;
     }
