@@ -6,8 +6,8 @@
 class AppState {
     constructor() {
         this.boardSpec = {
-            width: 2440,
-            height: 1220,
+            width: 1220,
+            height: 2440,
             considerGrain: false
         };
 
