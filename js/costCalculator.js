@@ -160,14 +160,14 @@ class CostCalculator {
             prev = pos + kerf;
         });
 
-        const qualifyingWidths = actualWidths.filter(width => Number.isFinite(width) && width >= 90);
+        const qualifyingWidths = actualWidths.filter(width => Number.isFinite(width) && Math.round(width) >= 90);
 
         if (qualifyingWidths.length === 0) {
             return 0;
         }
 
-        const count100up = qualifyingWidths.filter(width => width >= 100).length;
-        const count100down = qualifyingWidths.filter(width => width < 100).length;
+        const count100up = qualifyingWidths.filter(width => Math.round(width) >= 100).length;
+        const count100down = qualifyingWidths.filter(width => Math.round(width) < 100).length;
         const useUnder100Price = count100down > count100up;
         const thickness = this.getBoardThickness();
         const cutCost = (bin.cuttingCount || 0) * this.getCutPriceByThickness(thickness);
