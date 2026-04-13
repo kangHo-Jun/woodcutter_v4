@@ -154,17 +154,23 @@ class CostCalculator {
         // 가장 좁은 폭 기준으로 단가 구간을 적용한다.
         const targetWidth = Math.min(...qualifyingWidths);
         const thickness = this.getBoardThickness();
+        let fixedPrice = 0;
 
         if (thickness <= 12) {
-            return targetWidth >= 100 ? 5000 : 7000;
+            fixedPrice = targetWidth >= 100 ? 5000 : 7000;
+        } else if (thickness >= 14.5 && thickness <= 23) {
+            fixedPrice = targetWidth >= 100 ? 7000 : 10000;
+        } else if (thickness >= 24) {
+            fixedPrice = targetWidth >= 100 ? 12000 : 15000;
+        } else {
+            fixedPrice = targetWidth >= 100 ? 7000 : 10000;
         }
-        if (thickness >= 14.5 && thickness <= 23) {
-            return targetWidth >= 100 ? 7000 : 10000;
-        }
-        if (thickness >= 24) {
-            return targetWidth >= 100 ? 12000 : 15000;
-        }
-        return targetWidth >= 100 ? 7000 : 10000;
+
+        console.log('[길게쪽] qualifyingWidths:', qualifyingWidths);
+        console.log('[길게쪽] thickness:', this.getBoardThickness());
+        console.log('[길게쪽] fixedPrice:', fixedPrice);
+
+        return fixedPrice;
     }
 
     static getBoardThickness() {
