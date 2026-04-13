@@ -741,7 +741,7 @@ class WoodcutterApp {
         const trimMargin = trimEnabled ? (parseFloat(trimSettings.trimMargin) || 0) : 0;
         const boardWidth = this.state.boardSpec.width - trimMargin;
         const boardHeight = this.state.boardSpec.height;
-        const isPortraitBoard = boardWidth < boardHeight;
+        const isPortraitBoard = this.state.boardSpec.width < this.state.boardSpec.height;
         const renderBoardWidth = isPortraitBoard ? boardHeight : boardWidth;
         const renderBoardHeight = isPortraitBoard ? boardWidth : boardHeight;
         const maxWidth = 700;
@@ -865,12 +865,12 @@ class WoodcutterApp {
         ctx.fillStyle = '#333';
         ctx.font = '14px "Noto Sans KR", sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`${boardWidth} mm`, padding + (renderBoardWidth * drawScale) / 2, padding - 20);
+        ctx.fillText(`${this.state.boardSpec.width} mm`, padding + (renderBoardWidth * drawScale) / 2, padding - 20);
 
         ctx.save();
         ctx.translate(padding - 25, padding + (renderBoardHeight * drawScale) / 2);
         ctx.rotate(-Math.PI / 2);
-        ctx.fillText(`${boardHeight} mm`, 0, 0);
+        ctx.fillText(`${this.state.boardSpec.height} mm`, 0, 0);
         ctx.restore();
 
         // === 잔여 영역 표시: 가로 최소 잔여 + 세로 최소 잔여 ===
