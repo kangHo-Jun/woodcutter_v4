@@ -142,6 +142,10 @@ class CostCalculator {
             return 0;
         }
 
+        if (bin.cutDetails.some(detail => detail && detail.fullSpan !== true)) {
+            return 0;
+        }
+
         const qualifyingWidths = bin.cutDetails
             .filter(detail => detail && detail.fullSpan === true)
             .map(detail => Array.isArray(detail.pieceWidthsAfterCut) ? detail.pieceWidthsAfterCut[0] : null)
@@ -154,6 +158,7 @@ class CostCalculator {
         // 가장 좁은 폭 기준으로 단가 구간을 적용한다.
         const targetWidth = Math.min(...qualifyingWidths);
         const thickness = this.getBoardThickness();
+        const cutCost = (bin.cuttingCount || 0) * this.getCutPriceByThickness(thickness);
         let fixedPrice = 0;
 
         if (thickness <= 12) {
@@ -166,7 +171,7 @@ class CostCalculator {
             fixedPrice = targetWidth >= 100 ? 7000 : 10000;
         }
 
-        return fixedPrice;
+        return fixedPrice < cutCost ? fixedPrice : 0;
     }
 
     static getBoardThickness() {
