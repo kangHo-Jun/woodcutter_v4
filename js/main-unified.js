@@ -736,10 +736,10 @@ class WoodcutterApp {
      * 캔버스에 bin 그리기
      */
     drawBinToCanvas(canvas, bin, labeledGroups) {
-        const boardWidth = this.state.boardSpec.width - trimMargin;
         const trimSettings = window.SettingsManager ? SettingsManager.readFromUI() : {};
         const trimEnabled = trimSettings.enableTrim === true;
         const trimMargin = trimEnabled ? (parseFloat(trimSettings.trimMargin) || 0) : 0;
+        const boardWidth = this.state.boardSpec.width - trimMargin;
         const boardHeight = this.state.boardSpec.height;
         const isPortraitBoard = boardWidth < boardHeight;
         const renderBoardWidth = isPortraitBoard ? boardHeight : boardWidth;
