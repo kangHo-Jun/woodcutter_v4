@@ -143,7 +143,7 @@ class CostCalculator {
         }
 
         const qualifyingWidths = bin.cutDetails
-            .filter(detail => detail && detail.axis === 'X' && detail.fullSpan === true)
+            .filter(detail => detail && detail.axis === 'Y' && detail.fullSpan === true)
             .flatMap(detail => Array.isArray(detail.pieceWidthsAfterCut) ? detail.pieceWidthsAfterCut : [])
             .filter(width => Number.isFinite(width) && width >= 90);
 
