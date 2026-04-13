@@ -557,10 +557,10 @@ class WoodcutterApp {
                 };
             });
 
-            // 스왑 후 치수 기준 판재 초과 체크 (긴축/짧은축 기준)
+            // 스왑 후 치수 기준 판재 초과 체크 (길이/폭 기준)
             const oversized = items.filter(item =>
-                Math.max(item.width, item.height) > boardLong ||
-                Math.min(item.width, item.height) > boardShort
+                Math.max(item.width, item.height) > boardH ||
+                Math.min(item.width, item.height) > boardW
             );
             if (oversized.length > 0) {
                 calculateBtn.disabled = false;
