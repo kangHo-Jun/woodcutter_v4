@@ -865,12 +865,12 @@ class WoodcutterApp {
         ctx.fillStyle = '#333';
         ctx.font = '14px "Noto Sans KR", sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`${renderBoardWidth} mm`, padding + (renderBoardWidth * drawScale) / 2, padding - 20);
+        ctx.fillText(`${boardWidth} mm`, padding + (renderBoardWidth * drawScale) / 2, padding - 20);
 
         ctx.save();
         ctx.translate(padding - 25, padding + (renderBoardHeight * drawScale) / 2);
         ctx.rotate(-Math.PI / 2);
-        ctx.fillText(`${renderBoardHeight} mm`, 0, 0);
+        ctx.fillText(`${boardHeight} mm`, 0, 0);
         ctx.restore();
 
         // === 잔여 영역 표시: 가로 최소 잔여 + 세로 최소 잔여 ===
