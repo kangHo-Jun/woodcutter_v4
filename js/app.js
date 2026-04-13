@@ -1002,12 +1002,8 @@ ${partsList}
 
     debug() {
         console.group('/debug - Application State');
-        console.log('Current Step:', this.currentStep);
-        console.log('Current Field:', this.currentField);
-        console.log('Input Values:', { ...this.inputValues });
-        console.log('Parts:', [...this.parts]);
-        console.log('Last Result:', this.lastResult);
-        console.log('Board Specs:', {
+        // No console logging
+    }
             width: document.getElementById('boardWidth')?.value,
             height: document.getElementById('boardHeight')?.value,
             thickness: document.getElementById('boardThickness')?.value,

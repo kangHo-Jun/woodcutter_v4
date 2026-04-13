@@ -14,7 +14,7 @@ class WoodcutterPC {
      * 애플리케이션 초기화
      */
     async init() {
-        console.log('대장간 V3 PC 버전 초기화 중...');
+        // Initialization started
 
         // 설정 불러오기
         const savedSettings = SettingsManager.load();
@@ -33,7 +33,7 @@ class WoodcutterPC {
         // 절단 단가 표시 초기화
         this.updateCutPriceDisplay();
 
-        console.log('초기화 완료');
+        // Initialization complete
     }
 
     /**
@@ -399,7 +399,7 @@ class WoodcutterPC {
             );
 
             if (result.success) {
-                console.log('PDF 저장 완료:', result.filename);
+                // PDF saving completed
             } else {
                 alert('PDF 생성 실패: ' + result.error);
             }
@@ -429,7 +429,7 @@ class WoodcutterPC {
         document.getElementById('resultContainer').classList.add('hidden');
         document.getElementById('emptyState').classList.remove('hidden');
 
-        console.log('새 작업 시작');
+        // New task started
     }
 }
 

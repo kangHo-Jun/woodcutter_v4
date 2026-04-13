@@ -17,7 +17,7 @@ class WoodcutterApp {
      * 애플리케이션 초기화
      */
     async init() {
-        console.log('대산 Ai 통합 버전 초기화 중...');
+        // Unified version init started
 
         // 설정 불러오기
         if (window.SettingsManager) {
@@ -41,7 +41,7 @@ class WoodcutterApp {
         // 상태 변경 리스너
         this.state.subscribe('cuttingList', () => this.renderPartsList());
 
-        console.log('초기화 완료');
+        // Init complete
     }
 
     /**
@@ -1016,7 +1016,7 @@ class WoodcutterApp {
             a.download = `재단계획_${dateStr}.pdf`;
             a.click();
             URL.revokeObjectURL(url);
-            console.log('PDF 다운로드 완료');
+            // PDF download completed
         } catch (error) {
             console.error('PDF 생성 오류:', error);
             alert('PDF 생성 중 오류가 발생했습니다');
@@ -1275,7 +1275,7 @@ class WoodcutterApp {
             const calculateBtn = document.getElementById('calculateBtn');
             if (calculateBtn) calculateBtn.disabled = false;
 
-            console.log('새 프로젝트 시작');
+            // New project started
         }
     }
 
