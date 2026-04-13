@@ -115,10 +115,11 @@ class PDFGenerator {
         const settings = window.SettingsManager ? SettingsManager.readFromUI() : {};
         const trimEnabled = settings.enableTrim === true;
         const trimMargin = trimEnabled ? (parseFloat(settings.trimMargin) || 0) : 0;
-        const boardHeight = state.boardSpec.height - trimMargin;
+        const boardWidth = state.boardSpec.width - trimMargin;
+        const boardHeight = state.boardSpec.height;
 
         ctx.font = '18px "Noto Sans KR", sans-serif';
-        ctx.fillText(`크기: ${state.boardSpec.width} × ${boardHeight} mm`, margin + 20, y);
+        ctx.fillText(`크기: ${boardWidth} × ${boardHeight} mm`, margin + 20, y);
         y += 30;
         ctx.fillText(`결 고려: ${state.boardSpec.considerGrain ? '예' : '아니오'}`, margin + 20, y);
         y += 30;
