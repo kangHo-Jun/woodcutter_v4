@@ -33,8 +33,14 @@ class CostCalculator {
         // 따라서 trimCuts를 추가 차감하면 과소청구가 발생한다.
         const billableCuts = totalCuts;
 
-        // 총 재단비 = 청구 가능한 절단 횟수 × 절단 단가
-        const totalCuttingCost = billableCuts * settings.cutPrice;
+        // 총 재단비 = 조건 충족 판재는 원판당 고정 단가, 그 외는 기존 컷당 단가 유지
+        const totalCuttingCost = bins.reduce((sum, bin) => {
+            const fixedPrice = this.getLongSidePanelFixedPrice(bin);
+            if (fixedPrice > 0) {
+                return sum + fixedPrice;
+            }
+            return sum + ((bin.cuttingCount || 0) * settings.cutPrice);
+        }, 0);
 
         // 사용 면적 및 전체 면적
         const usedArea = bins.reduce((sum, bin) => sum + (bin.usedArea || 0), 0);
@@ -129,6 +135,52 @@ class CostCalculator {
             return 2000;
         }
         return 1500; // 기본값
+    }
+
+    static getLongSidePanelFixedPrice(bin) {
+        if (!bin || !Array.isArray(bin.cutDetails) || bin.cutDetails.length === 0) {
+            return 0;
+        }
+
+        // 짜투리 없음: 유효 판재 면적을 전부 사용한 경우만 인정
+        const usedArea = Number(bin.usedArea) || 0;
+        const totalArea = Number(bin.totalArea) || 0;
+        if (Math.abs(totalArea - usedArea) > 0.01) {
+            return 0;
+        }
+
+        const qualifyingWidths = bin.cutDetails
+            .filter(detail => detail && detail.axis === 'X' && detail.fullSpan === true)
+            .flatMap(detail => Array.isArray(detail.pieceWidthsAfterCut) ? detail.pieceWidthsAfterCut : [])
+            .filter(width => Number.isFinite(width) && width >= 90);
+
+        if (qualifyingWidths.length === 0) {
+            return 0;
+        }
+
+        // 가장 좁은 폭 기준으로 단가 구간을 적용한다.
+        const targetWidth = Math.min(...qualifyingWidths);
+        const thickness = this.getBoardThickness();
+
+        if (thickness <= 12) {
+            return targetWidth >= 100 ? 5000 : 7000;
+        }
+        if (thickness >= 14.5 && thickness <= 23) {
+            return targetWidth >= 100 ? 7000 : 10000;
+        }
+        if (thickness >= 24) {
+            return targetWidth >= 100 ? 12000 : 15000;
+        }
+        return targetWidth >= 100 ? 7000 : 10000;
+    }
+
+    static getBoardThickness() {
+        if (typeof document === 'undefined') {
+            return 18;
+        }
+        const input = document.getElementById('boardThickness');
+        const thickness = input ? parseFloat(input.value) : 18;
+        return Number.isFinite(thickness) ? thickness : 18;
     }
 }
 

@@ -506,7 +506,8 @@ class AdaptiveGuillotineBin {
             usedArea,
             totalArea,
             cuttingCount: cutLinesX.size + cutLinesY.size,
-            firstCutDirection: selected.firstDirection
+            firstCutDirection: selected.firstDirection,
+            cutDetails: selected.cutDetails || []
         };
     }
 
@@ -517,6 +518,7 @@ class AdaptiveGuillotineBin {
         let placed = [...initial.placed];
         let remaining = initial.unplaced;
         let freeRects = [...initial.freeRects];
+        let cutDetails = [...(initial.cutDetails || [])];
 
         while (remaining.length > 0 && freeRects.length > 0) {
             let placedAny = false;
@@ -540,6 +542,7 @@ class AdaptiveGuillotineBin {
                     placed.push(...bestForRect.placed);
                     remaining = bestForRect.unplaced;
                     nextFreeRects.push(...bestForRect.freeRects);
+                    cutDetails.push(...(bestForRect.cutDetails || []));
                 });
 
             freeRects = this.normalizeFreeRects(nextFreeRects);
@@ -555,7 +558,8 @@ class AdaptiveGuillotineBin {
             unplaced: remaining,
             freeRects,
             placedArea,
-            score
+            score,
+            cutDetails
         };
     }
 
@@ -590,6 +594,7 @@ class AdaptiveGuillotineBin {
     packHorizontalPrimary(rect, items) {
         const placed = [];
         const freeRects = [];
+        const cutDetails = [];
         let remaining = [...items];
         let currentY = rect.y;
 
@@ -629,6 +634,7 @@ class AdaptiveGuillotineBin {
             if (bestAttempt.rightFreeRect) {
                 freeRects.push(bestAttempt.rightFreeRect);
             }
+            cutDetails.push(...(bestAttempt.cutDetails || []));
             currentY = stripStartY + bestAttempt.stripSize;
         }
 
@@ -646,13 +652,15 @@ class AdaptiveGuillotineBin {
         return {
             placed,
             unplaced: remaining,
-            freeRects: this.normalizeFreeRects(freeRects)
+            freeRects: this.normalizeFreeRects(freeRects),
+            cutDetails
         };
     }
 
     packVerticalPrimary(rect, items) {
         const placed = [];
         const freeRects = [];
+        const cutDetails = [];
         let remaining = [...items];
         let currentX = rect.x;
 
@@ -692,6 +700,7 @@ class AdaptiveGuillotineBin {
             if (bestAttempt.bottomFreeRect) {
                 freeRects.push(bestAttempt.bottomFreeRect);
             }
+            cutDetails.push(...(bestAttempt.cutDetails || []));
             currentX = stripStartX + bestAttempt.stripSize;
         }
 
@@ -709,12 +718,14 @@ class AdaptiveGuillotineBin {
         return {
             placed,
             unplaced: remaining,
-            freeRects: this.normalizeFreeRects(freeRects)
+            freeRects: this.normalizeFreeRects(freeRects),
+            cutDetails
         };
     }
 
     fillHorizontalStrip(rect, stripStartY, stripHeight, items) {
         const oriented = [];
+        const cutDetails = [];
 
         items.forEach(item => {
             if (item.height === stripHeight && item.width <= rect.width) {
@@ -760,6 +771,10 @@ class AdaptiveGuillotineBin {
             placedIds.add(candidate.item.id);
             currentX = x + candidate.width;
             usedWidthEnd = currentX;
+
+            if (x + candidate.width < rect.x + rect.width) {
+                cutDetails.push(this.createCutDetail('X', x + candidate.width, stripStartY, stripStartY + stripHeight, rect));
+            }
         }
 
         const unplaced = items.filter(item => !placedIds.has(item.id));
@@ -784,12 +799,14 @@ class AdaptiveGuillotineBin {
             unplaced,
             stripSize: stripHeight,
             usedArea,
-            rightFreeRect
+            rightFreeRect,
+            cutDetails
         };
     }
 
     fillVerticalStrip(rect, stripStartX, stripWidth, items) {
         const oriented = [];
+        const cutDetails = [];
 
         items.forEach(item => {
             if (item.width === stripWidth && item.height <= rect.height) {
@@ -835,6 +852,10 @@ class AdaptiveGuillotineBin {
             placedIds.add(candidate.item.id);
             currentY = y + candidate.height;
             usedHeightEnd = currentY;
+
+            if (y + candidate.height < rect.y + rect.height) {
+                cutDetails.push(this.createCutDetail('Y', y + candidate.height, stripStartX, stripStartX + stripWidth, rect));
+            }
         }
 
         const unplaced = items.filter(item => !placedIds.has(item.id));
@@ -859,7 +880,37 @@ class AdaptiveGuillotineBin {
             unplaced,
             stripSize: stripWidth,
             usedArea,
-            bottomFreeRect
+            bottomFreeRect,
+            cutDetails
+        };
+    }
+
+    createCutDetail(axis, pos, spanStart, spanEnd, sourceRect) {
+        const length = Math.max(0, spanEnd - spanStart);
+        const fullSpan = axis === 'X'
+            ? spanStart === 0 && spanEnd === this.height
+            : spanStart === 0 && spanEnd === this.width;
+        const relativePos = axis === 'X'
+            ? pos - sourceRect.x
+            : pos - sourceRect.y;
+        const sourceSize = axis === 'X' ? sourceRect.width : sourceRect.height;
+        const firstPiece = Math.max(0, relativePos);
+        const secondPiece = Math.max(0, sourceSize - relativePos - this.kerf);
+
+        return {
+            axis,
+            pos,
+            spanStart,
+            spanEnd,
+            length,
+            fullSpan,
+            sourceRect: {
+                x: sourceRect.x,
+                y: sourceRect.y,
+                width: sourceRect.width,
+                height: sourceRect.height
+            },
+            pieceWidthsAfterCut: [firstPiece, secondPiece]
         };
     }
 
