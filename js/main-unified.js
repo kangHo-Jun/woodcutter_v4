@@ -520,8 +520,8 @@ class WoodcutterApp {
 
             const trimEnabled = settings.enableTrim === true;
             const trimMargin = trimEnabled ? (parseFloat(settings.trimMargin) || 0) : 0;
-            const effectiveBoardWidth = this.state.boardSpec.width;
-            const effectiveBoardHeight = this.state.boardSpec.height - trimMargin;
+            const effectiveBoardWidth = this.state.boardSpec.width - trimMargin;
+            const effectiveBoardHeight = this.state.boardSpec.height;
 
             if (trimEnabled && (effectiveBoardWidth <= 0 || effectiveBoardHeight <= 0)) {
                 throw new Error('전단 여백이 판재 크기보다 큽니다. 여백 값을 확인하세요.');
@@ -736,11 +736,11 @@ class WoodcutterApp {
      * 캔버스에 bin 그리기
      */
     drawBinToCanvas(canvas, bin, labeledGroups) {
-        const boardWidth = this.state.boardSpec.width;
+        const boardWidth = this.state.boardSpec.width - trimMargin;
         const trimSettings = window.SettingsManager ? SettingsManager.readFromUI() : {};
         const trimEnabled = trimSettings.enableTrim === true;
         const trimMargin = trimEnabled ? (parseFloat(trimSettings.trimMargin) || 0) : 0;
-        const boardHeight = this.state.boardSpec.height - trimMargin;
+        const boardHeight = this.state.boardSpec.height;
         const isPortraitBoard = boardWidth < boardHeight;
         const renderBoardWidth = isPortraitBoard ? boardHeight : boardWidth;
         const renderBoardHeight = isPortraitBoard ? boardWidth : boardHeight;
