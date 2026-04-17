@@ -1,0 +1,38 @@
+2c9dac0 docs: 시스템 가이드 문서 작성
+2289b0f fix: enableTrim 항상 true 고정
+c699347 fix: 도면 치수 텍스트 가로/세로 표시 교정
+83e7cb8 fix: 도면 치수 원판 기준 표시, isPortraitBoard 원판 기준 판단
+dfa95d9 fix: 쭉절단 100mm이하/101mm이상 기준 수정, console.log 제거
+a511e77 fix: 부동소수점 오류 Math.round 적용, console.log 제거
+bad22a7 fix: drawBinToCanvas trimMargin 선언 순서 수정
+870d4d8 fix: 전단여백 폭방향 적용 재수정
+fc3c599 fix: state 기본값 수정, 판재초과 체크 큰값 기준으로 수정
+03feffc Revert "fix: 판재초과 체크 폭/길이 방향 수정"
+3651769 fix: 판재초과 체크 폭/길이 방향 수정
+f47445e fix: 전단여백 폭방향 적용으로 수정
+5d98660 docs: 전단로직 업데이트 내역 정리
+be0898d fix: 합판길게쪽 실제부품폭 계산 수정
+edb8964 fix: 도면 치수 표시와 합판길게쪽 단가 기준 조정
+a817888 fix: 합판길게쪽 적용 조건과 단가 비교 추가
+34e8ce2 fix: 합판길게쪽 axis조건 제거, 7000원 확정
+1281e19 chore: 합판길게쪽 디버그 로그 추가
+83b730f fix: 합판길게쪽 axis 원복, console.log 제거
+7faf226 fix: 합판길게쪽 axis 원복, console.log 제거
+0fbceda fix: 합판길게쪽 폭 판정 기준 보정
+f952456 fix: 합판길게쪽 축 판정 Y로 수정
+1d1348d fix: 합판길게쪽 조건에서 전체채움 제외
+ebeec48 feat: 합판길게쪽 원판당 단가 로직 추가
+041f692 fix: 전단여부 기본 활성화
+d318754 fix: 남은 치수 표시 가로/세로 수정
+8461a63 fix: 판재 기본값 1220x2440으로 정정
+dfe2b72 fix: 도면 무조건 가로 출력 렌더링 수정
+faf04db fix: 나무결 OFF 전환 시 기존 부품 rotatable 동기화
+2fb828d fix: renderGroupCanvases requestAnimationFrame으로 레이아웃 타이밍 수정
+0686378 fix: closeShareDropdown 잔여 이벤트 리스너 제거 - JS 초기화 오류 수정
+d946f72 fix: 나무결 ON 판재 긴축 기준 스왑 및 초과 체크 수정
+fde74f1 fix: 나무결 ON 스왑 방향 수정 - 작은값→폭(x), 큰값→길이(y)
+56f0546 fix: 판재초과 체크 로직 수정, 새프로젝트 버튼 활성화 fix
+4ae1cb3 fix: 부품입력 레이블 제거, 나무결 스왑 후 판재 초과 검증 추가
+10cd973 feat: 길이/폭 UI변경, 나무결 배치로직, 부품입력제한 수정
+93071f4 fix: 판재 높이 도면 잘림 버그 수정
+ddb7374 feat: UI 간소화 - 전단여부 고정, 여백/고급설정/원가설정 제거
