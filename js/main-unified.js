@@ -527,17 +527,17 @@ class WoodcutterApp {
                 throw new Error('전단 여백이 판재 크기보다 큽니다. 여백 값을 확인하세요.');
             }
 
-            const packer = new GuillotinePacker(
-                trimEnabled ? effectiveBoardWidth : this.state.boardSpec.width,
-                trimEnabled ? effectiveBoardHeight : this.state.boardSpec.height,
-                settings.kerf
-            );
+            const rawW = trimEnabled ? effectiveBoardWidth : this.state.boardSpec.width;
+            const rawH = trimEnabled ? effectiveBoardHeight : this.state.boardSpec.height;
+            const packerW = rawH; // 길이 = 항상 가로(X축)
+            const packerH = rawW; // 폭 = 항상 세로(Y축)
+            const packer = new GuillotinePacker(packerW, packerH, settings.kerf);
 
             const considerGrain = this.state.boardSpec.considerGrain;
             const boardW = trimEnabled ? effectiveBoardWidth : this.state.boardSpec.width;
             const boardH = trimEnabled ? effectiveBoardHeight : this.state.boardSpec.height;
             // 판재의 긴 축/짧은 축 판단
-            const boardLongIsX = boardW >= boardH;
+            const boardLongIsX = true; // packerW가 항상 긴 축(길이방향)
             const boardLong  = Math.max(boardW, boardH);
             const boardShort = Math.min(boardW, boardH);
 
@@ -545,10 +545,10 @@ class WoodcutterApp {
                 // 나무결 ON: 부품 긴값 → 판재 긴축, 부품 짧은값 → 판재 짧은축
                 const pw = considerGrain
                     ? (boardLongIsX ? Math.max(part.width, part.height) : Math.min(part.width, part.height))
-                    : part.width;
+                    : (!part.rotatable ? part.height : part.width);
                 const ph = considerGrain
                     ? (boardLongIsX ? Math.min(part.width, part.height) : Math.max(part.width, part.height))
-                    : part.height;
+                    : (!part.rotatable ? part.width : part.height);
                 return {
                     width: pw,
                     height: ph,
@@ -557,11 +557,15 @@ class WoodcutterApp {
                 };
             });
 
-            // 스왑 후 치수 기준 판재 초과 체크 (긴축/짧은축 기준)
-            const oversized = items.filter(item =>
-                Math.max(item.width, item.height) > Math.max(this.state.boardSpec.width, this.state.boardSpec.height) ||
-                Math.min(item.width, item.height) > Math.min(boardW, boardH)
-            );
+            // 스왑 후 치수 기준 판재 초과 체크
+            const oversized = this.state.cuttingList.filter(part => {
+                if (considerGrain || !part.rotatable) {
+                    return part.width > boardW || part.height > boardH;
+                }
+                const normalFit = part.width <= boardW && part.height <= boardH;
+                const rotatedFit = part.height <= boardW && part.width <= boardH;
+                return !normalFit && !rotatedFit;
+            });
             if (oversized.length > 0) {
                 calculateBtn.disabled = false;
                 calculateBtn.textContent = '최적화 계산';
@@ -741,9 +745,9 @@ class WoodcutterApp {
         const trimMargin = trimEnabled ? (parseFloat(trimSettings.trimMargin) || 0) : 0;
         const boardWidth = this.state.boardSpec.width - trimMargin;
         const boardHeight = this.state.boardSpec.height;
-        const isPortraitBoard = this.state.boardSpec.width < this.state.boardSpec.height;
-        const renderBoardWidth = isPortraitBoard ? boardHeight : boardWidth;
-        const renderBoardHeight = isPortraitBoard ? boardWidth : boardHeight;
+        const isPortraitBoard = false;
+        const renderBoardWidth = boardHeight;  // 길이 = 가로
+        const renderBoardHeight = boardWidth;  // 폭 = 세로
         const maxWidth = 700;
         const padding = 50;
         const drawScale = (maxWidth - padding * 2) / renderBoardWidth;
@@ -788,12 +792,69 @@ class WoodcutterApp {
             }
         });
 
+        // 절단선 표시 (cutDetails 기반)
+        const bin_cutDetails = bin.cutDetails || [];
+        const cutPlaced = bin.placed || [];
+        const isCutAlignedWithPlaced = (cut) => {
+            const pos = Math.round(cut.pos);
+            return cutPlaced.some(part => {
+                if (cut.axis === 'Y') {
+                    const edgeTop = Math.round(part.y);
+                    const edgeBottom = Math.round(part.y + part.height);
+                    const overlaps = cut.spanEnd > part.x && cut.spanStart < part.x + part.width;
+                    return overlaps && (pos === edgeTop || pos === edgeBottom);
+                }
+                const edgeLeft = Math.round(part.x);
+                const edgeRight = Math.round(part.x + part.width);
+                const overlaps = cut.spanEnd > part.y && cut.spanStart < part.y + part.height;
+                return overlaps && (pos === edgeLeft || pos === edgeRight);
+            });
+        };
+        // 중복 제거: 같은 axis+pos면 span 짧은 것 우선
+        const cutMap = new Map();
+        bin_cutDetails.forEach(c => {
+            if (!isCutAlignedWithPlaced(c)) return;
+            const key = `${c.axis}_${Math.round(c.pos)}`;
+            if (!cutMap.has(key)) {
+                cutMap.set(key, c);
+            } else {
+                const existing = cutMap.get(key);
+                const existingSpan = existing.spanEnd - existing.spanStart;
+                const newSpan = c.spanEnd - c.spanStart;
+                if (newSpan < existingSpan) {
+                    cutMap.set(key, c);
+                }
+            }
+        });
+        const uniqueCuts = Array.from(cutMap.values());
+
+        // 절단선 그리기
+        uniqueCuts.forEach(cut => {
+            const spanLength = cut.spanEnd - cut.spanStart;
+            if (spanLength < 50) return;
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+            ctx.lineWidth = 0.8;
+            ctx.setLineDash([4, 3]);
+            if (cut.axis === 'X') {
+                const cx = cut.pos * drawScale;
+                ctx.moveTo(padding + cx, padding + cut.spanStart * drawScale);
+                ctx.lineTo(padding + cx, padding + cut.spanEnd * drawScale);
+            } else {
+                const cy = cut.pos * drawScale;
+                ctx.moveTo(padding + cut.spanStart * drawScale, padding + cy);
+                ctx.lineTo(padding + cut.spanEnd * drawScale, padding + cy);
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+        });
+
         const renderedPlaced = bin.placed.map(part => ({
             source: part,
-            x: isPortraitBoard ? part.y : part.x,
-            y: isPortraitBoard ? part.x : part.y,
-            width: isPortraitBoard ? part.height : part.width,
-            height: isPortraitBoard ? part.width : part.height
+            x: part.x,
+            y: part.y,
+            width: part.width,
+            height: part.height
         }));
 
         // 부품 그리기
@@ -802,33 +863,102 @@ class WoodcutterApp {
             const y = padding + part.y * drawScale;
             const w = part.width * drawScale;
             const h = part.height * drawScale;
-
-            // 부품 배경
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(x + 1, y + 1, w - 2, h - 2);
-
-            // 부품 테두리
-            ctx.strokeStyle = '#cccccc';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
-
-            // 라벨 찾기
             const label = LabelingEngine.findLabel(part.width, part.height, labeledGroups);
 
-            // 라벨 텍스트
-            ctx.fillStyle = '#333333';
-            ctx.font = 'bold 16px "Noto Sans KR", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(label, x + w / 2, y + h / 2);
+            // 부품 배경
+            const PART_COLORS = [
+                '#DBEAFE', // A - 연파랑
+                '#DCFCE7', // B - 연초록
+                '#FEF9C3', // C - 연노랑
+                '#FFEDD5', // D - 연주황
+                '#F3E8FF', // E - 연보라
+                '#FCE7F3', // F - 연핑크
+                '#E0F2FE', // G - 하늘
+                '#ECFDF5', // H - 민트
+            ];
 
-            // 치수 표시: 같은 라벨의 첫 번째 부품에만 (겹쳐도 무관)
-            const isFirstForLabel = labelFirstPart[label] === index;
-            if (isFirstForLabel) {
-                ctx.font = '12px "Noto Sans KR", sans-serif';
-                ctx.fillStyle = '#666666';
-                ctx.fillText(`${part.width}×${part.height}`, x + w / 2, y + h / 2 + 18);
+            const labelIndex = label ? label.charCodeAt(0) - 65 : 0;
+            const partColor = PART_COLORS[labelIndex % PART_COLORS.length] || '#FFFFFF';
+            ctx.fillStyle = partColor;
+            ctx.fillRect(x + 1, y + 1, w - 2, h - 2);
+
+            // 절단선 (부품 테두리 = 절단선)
+            ctx.strokeStyle = '#2D3748';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(x, y, w, h);
+
+            // 라벨
+            const FONT_NORMAL = 11;
+            const FONT_SMALL = 7;
+
+            // 치수 표시 조건: 실제 크기 50mm 이상
+            const showW = part.width >= 50;
+            const showH = part.height >= 50;
+
+            // 가로 치수 (상단 중앙)
+            if (showW) {
+                const text = `${part.width}`;
+                // NORMAL 크기로 들어가는지 확인
+                ctx.font = `${FONT_NORMAL}px "Noto Sans KR", sans-serif`;
+                const textW = ctx.measureText(text).width;
+                let fontSize = FONT_NORMAL;
+                if (textW > w - 4) {
+                    fontSize = FONT_SMALL;
+                    ctx.font = `${FONT_SMALL}px "Noto Sans KR", sans-serif`;
+                    const smallW = ctx.measureText(text).width;
+                    if (smallW > w - 2) fontSize = 0; // 생략
+                }
+                if (fontSize > 0) {
+                    ctx.font = `${fontSize}px "Noto Sans KR", sans-serif`;
+                    ctx.fillStyle = '#2B6CB0';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'top';
+                    ctx.fillText(text, x + w / 2, y + 3);
+                }
             }
+
+            // 세로 치수 (좌측 중앙, 90도 회전)
+            if (showH) {
+                const text = `${part.height}`;
+                ctx.save();
+                ctx.translate(x + 10, y + h / 2);
+                ctx.rotate(-Math.PI / 2);
+                ctx.font = `${FONT_NORMAL}px "Noto Sans KR", sans-serif`;
+                const textW = ctx.measureText(text).width;
+                let fontSize = FONT_NORMAL;
+                if (textW > h - 4) {
+                    fontSize = FONT_SMALL;
+                    ctx.font = `${FONT_SMALL}px "Noto Sans KR", sans-serif`;
+                    const smallW = ctx.measureText(text).width;
+                    if (smallW > h - 2) fontSize = 0;
+                }
+                if (fontSize > 0) {
+                    ctx.font = `${fontSize}px "Noto Sans KR", sans-serif`;
+                    ctx.fillStyle = '#2B6CB0';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(text, 0, 0);
+                }
+                ctx.restore();
+            }
+
+            // 라벨을 부품 우측 상단에 표시
+            const LABEL_NORMAL = 11;
+            const LABEL_SMALL = 7;
+
+            // 라벨 폰트 크기 결정 (부품 안에 들어가는 크기)
+            let labelSize = LABEL_NORMAL;
+            ctx.font = `bold ${LABEL_NORMAL}px "Noto Sans KR", sans-serif`;
+            const labelW = ctx.measureText(label).width;
+            if (labelW > w - 4 || LABEL_NORMAL > h - 2) {
+                labelSize = LABEL_SMALL;
+            }
+
+            ctx.font = `bold ${labelSize}px "Noto Sans KR", sans-serif`;
+            ctx.fillStyle = '#1A202C';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'top';
+            ctx.fillText(label, x + w - 3, y + 3);
         });
 
         // === 부품 위 워터마크 추가 (설정 연동) ===
@@ -865,54 +995,113 @@ class WoodcutterApp {
         ctx.fillStyle = '#333';
         ctx.font = '14px "Noto Sans KR", sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`${this.state.boardSpec.height} mm`, padding + (renderBoardWidth * drawScale) / 2, padding - 20);
+        ctx.fillText(`${boardHeight} mm`, padding + (renderBoardWidth * drawScale) / 2, padding - 20);
 
         ctx.save();
         ctx.translate(padding - 25, padding + (renderBoardHeight * drawScale) / 2);
         ctx.rotate(-Math.PI / 2);
-        ctx.fillText(`${this.state.boardSpec.width} mm`, 0, 0);
+        ctx.fillText(`${boardWidth} mm`, 0, 0);
         ctx.restore();
 
-        // === 잔여 영역 표시: 가로 최소 잔여 + 세로 최소 잔여 ===
-        const renderedBin = { placed: renderedPlaced };
-        const residuals = this.getAxisMinResiduals(renderedBin, renderBoardWidth, renderBoardHeight);
-        const maxX = Math.max(...renderedPlaced.map(part => part.x + part.width), 0);
-        const maxY = Math.max(...renderedPlaced.map(part => part.y + part.height), 0);
-        const rightRemnantWidth = Math.max(0, renderBoardWidth - maxX);
-        const bottomRemnantHeight = Math.max(0, renderBoardHeight - maxY);
+        // === 잔여 영역 치수 표시 (freeRects 기반) ===
+        const MIN_AREA = 20000; // 20,000mm² 이상만 표시
+        const displayFreeRects = this.buildDisplayFreeRects(renderedPlaced, renderBoardWidth, renderBoardHeight);
 
-        if (bottomRemnantHeight > 0) {
-            ctx.save();
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-            ctx.font = 'bold 16px "Noto Sans KR", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.translate(
-                padding + (renderBoardWidth * drawScale) / 2,
-                padding + (maxY + bottomRemnantHeight / 2) * drawScale
-            );
-            ctx.rotate(-Math.PI / 2);
-            ctx.fillText(
-                `${Math.round(bottomRemnantHeight)}mm`,
-                0,
-                0
-            );
-            ctx.restore();
+        displayFreeRects.forEach(rect => {
+            // packer 기준: x=길이방향, y=폭방향
+            // 렌더링 기준: x=길이방향(가로), y=폭방향(세로)
+            const rw = rect.width;
+            const rh = rect.height;
+            const rx = rect.x;
+            const ry = rect.y;
+
+            // 면적 조건
+            if (rw * rh < MIN_AREA) return;
+
+            const rxPx = padding + rx * drawScale;
+            const ryPx = padding + ry * drawScale;
+            const rwPx = rw * drawScale;
+            const rhPx = rh * drawScale;
+
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            ctx.font = 'bold 13px "Noto Sans KR", sans-serif';
+
+            // 가로 치수 (상단 중앙)
+            if (rw >= 50) {
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.fillText(`${Math.round(rw)}`, rxPx + rwPx / 2, ryPx + 4);
+            }
+
+            // 세로 치수 (좌측 중앙, 90도 회전)
+            if (rh >= 50) {
+                ctx.save();
+                ctx.translate(rxPx + 12, ryPx + rhPx / 2);
+                ctx.rotate(-Math.PI / 2);
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`${Math.round(rh)}`, 0, 0);
+                ctx.restore();
+            }
+        });
+    }
+
+    buildDisplayFreeRects(placed, boardWidth, boardHeight) {
+        const xEdges = new Set([0, boardWidth]);
+        const yEdges = new Set([0, boardHeight]);
+
+        placed.forEach(part => {
+            xEdges.add(part.x);
+            xEdges.add(part.x + part.width);
+            yEdges.add(part.y);
+            yEdges.add(part.y + part.height);
+        });
+
+        const xs = Array.from(xEdges).sort((a, b) => a - b);
+        const ys = Array.from(yEdges).sort((a, b) => a - b);
+        const freeRects = [];
+
+        for (let yi = 0; yi < ys.length - 1; yi++) {
+            const y0 = ys[yi];
+            const y1 = ys[yi + 1];
+            const h = y1 - y0;
+            if (h <= 0) continue;
+
+            let current = null;
+            for (let xi = 0; xi < xs.length - 1; xi++) {
+                const x0 = xs[xi];
+                const x1 = xs[xi + 1];
+                const w = x1 - x0;
+                if (w <= 0) continue;
+
+                const cx = x0 + w / 2;
+                const cy = y0 + h / 2;
+                const occupied = placed.some(part =>
+                    cx >= part.x && cx <= part.x + part.width &&
+                    cy >= part.y && cy <= part.y + part.height
+                );
+
+                if (occupied) {
+                    if (current) {
+                        freeRects.push(current);
+                        current = null;
+                    }
+                    continue;
+                }
+
+                if (current) {
+                    current.width += w;
+                } else {
+                    current = { x: x0, y: y0, width: w, height: h };
+                }
+            }
+
+            if (current) {
+                freeRects.push(current);
+            }
         }
 
-        if (rightRemnantWidth > 0) {
-            ctx.save();
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-            ctx.font = 'bold 16px "Noto Sans KR", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(
-                `${Math.round(rightRemnantWidth)}mm`,
-                padding + (maxX + rightRemnantWidth / 2) * drawScale,
-                padding + (renderBoardHeight * drawScale) / 2
-            );
-            ctx.restore();
-        }
+        return freeRects;
     }
 
     getAxisMinResiduals(bin, boardWidth, boardHeight) {

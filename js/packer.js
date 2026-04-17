@@ -45,7 +45,7 @@ class GuillotinePacker {
         }
 
         const result = this.packAdaptiveAuto(items);
-        result.engine = 'adaptive';
+        result.engine = result.engine || 'adaptive';
         return result;
     }
 
@@ -76,29 +76,483 @@ class GuillotinePacker {
 
     packAdaptiveAuto(items) {
         const expandedItems = this.expandItems(items, false);
-        const bins = [];
-        let remainingItems = [...expandedItems];
 
-        while (remainingItems.length > 0) {
+        // 알고리즘A 실행
+        const binsA = [];
+        let remainingA = [...expandedItems];
+        while (remainingA.length > 0) {
             const bin = new AdaptiveGuillotineBin(this.binWidth, this.binHeight, this.kerf);
-            const result = bin.pack(remainingItems);
-
+            const result = bin.pack(remainingA);
             if (result.placed.length === 0) break;
-
-            if (this.isTrimEnabled() && result.unplaced.length > 0) {
+            if (result.unplaced.length > 0) {
                 this.tryPlaceResidualInAdaptive(result);
             }
+            if (!this.isValidPackingResult({ bins: [result], unplaced: result.unplaced })) {
+                remainingA = [...remainingA];
+                break;
+            }
+            binsA.push(result);
+            remainingA = result.unplaced;
+        }
 
-            bins.push(result);
-            remainingItems = result.unplaced;
+        // 알고리즘B 실행
+        const binsB = [];
+        let remainingB = [...expandedItems];
+        while (remainingB.length > 0) {
+            const binW = this.binWidth;
+            const binH = this.binHeight;
+            const bin = new AdaptiveGuillotineBinB(binW, binH, this.kerf);
+            const result = bin.pack(remainingB);
+            if (result.placed.length === 0) break;
+            if (!this.isValidPackingResult({ bins: [result], unplaced: result.unplaced })) {
+                remainingB = [...remainingB];
+                break;
+            }
+            binsB.push(result);
+            remainingB = result.unplaced;
+        }
+
+        // 미배치 수 우선 비교 → 같으면 판재수 비교 → 같으면 절단 횟수 비교 → 같으면 B 선택
+        const cutsA = this.getTotalCuttingCount(binsA);
+        const cutsB = this.getTotalCuttingCount(binsB);
+        let selectedBins, selectedUnplaced, selectedEngine;
+        if (binsB.length === 0) {
+            selectedBins = binsA;
+            selectedUnplaced = remainingA;
+            selectedEngine = 'A';
+        } else if (binsA.length === 0) {
+            selectedBins = binsB;
+            selectedUnplaced = remainingB;
+            selectedEngine = 'B';
+        } else if (remainingA.length < remainingB.length) {
+            selectedBins = binsA;
+            selectedUnplaced = remainingA;
+            selectedEngine = 'A';
+        } else if (remainingB.length < remainingA.length) {
+            selectedBins = binsB;
+            selectedUnplaced = remainingB;
+            selectedEngine = 'B';
+        } else if (binsA.length < binsB.length) {
+            selectedBins = binsA;
+            selectedUnplaced = remainingA;
+            selectedEngine = 'A';
+        } else if (cutsA < cutsB) {
+            selectedBins = binsA;
+            selectedUnplaced = remainingA;
+            selectedEngine = 'A';
+        } else if (cutsB < cutsA) {
+            selectedBins = binsB;
+            selectedUnplaced = remainingB;
+            selectedEngine = 'B';
+        } else {
+            selectedBins = binsB;
+            selectedUnplaced = remainingB;
+            selectedEngine = 'B';
+        }
+
+        const ripCandidate = this.buildLengthRipCandidate(expandedItems);
+        if (this.isValidPackingResult(ripCandidate) &&
+            this.shouldPreferLengthRip(ripCandidate, selectedBins, selectedUnplaced)) {
+            selectedBins = ripCandidate.bins;
+            selectedUnplaced = ripCandidate.unplaced;
+            selectedEngine = 'RIP';
+        }
+
+        const mixedRipCandidate = this.buildMixedLengthRipCandidate(expandedItems);
+        if (this.isValidPackingResult(mixedRipCandidate) &&
+            this.shouldPreferMixedLengthRip(mixedRipCandidate, selectedBins, selectedUnplaced)) {
+            selectedBins = mixedRipCandidate.bins;
+            selectedUnplaced = mixedRipCandidate.unplaced;
+            selectedEngine = 'MIXED_RIP';
+        }
+        console.log(`[ALGO] A판재:${binsA.length} B판재:${binsB.length} 선택:${selectedEngine}`);
+
+        return {
+            bins: selectedBins,
+            unplaced: selectedUnplaced,
+            totalEfficiency: this.calculateTotalEfficiency(selectedBins),
+            mode: 'auto',
+            engine: selectedEngine === 'RIP' || selectedEngine === 'MIXED_RIP' ? 'rip' : selectedEngine
+        };
+    }
+
+    buildLengthRipCandidate(items) {
+        if (!items || items.length === 0) return null;
+
+        const orientations = items.map(item => this.getLengthRipOrientation(item));
+        if (orientations.some(orientation => !orientation)) return null;
+
+        const bins = [];
+        let remaining = orientations.map((orientation, index) => ({
+            item: items[index],
+            ...orientation
+        }));
+
+        while (remaining.length > 0) {
+            const placed = [];
+            const cutDetails = [];
+            const nextRemaining = [];
+            let currentY = 0;
+
+            remaining.forEach(entry => {
+                const y = placed.length === 0 ? currentY : currentY + this.kerf;
+                if (y + entry.height > this.binHeight) {
+                    nextRemaining.push(entry);
+                    return;
+                }
+
+                placed.push({
+                    ...entry.item,
+                    x: 0,
+                    y,
+                    width: this.binWidth,
+                    height: entry.height,
+                    rotated: entry.rotated
+                });
+
+                currentY = y + entry.height;
+                if (currentY < this.binHeight) {
+                    cutDetails.push({
+                        axis: 'Y',
+                        pos: currentY,
+                        spanStart: 0,
+                        spanEnd: this.binWidth
+                    });
+                }
+            });
+
+            if (placed.length === 0) return null;
+
+            const usedArea = placed.reduce((sum, part) => sum + part.width * part.height, 0);
+            const totalArea = this.binWidth * this.binHeight;
+            const freeRects = [];
+            const bottomY = currentY + this.kerf;
+            if (bottomY < this.binHeight) {
+                freeRects.push({
+                    x: 0,
+                    y: bottomY,
+                    width: this.binWidth,
+                    height: this.binHeight - bottomY
+                });
+            }
+
+            bins.push({
+                width: this.binWidth,
+                height: this.binHeight,
+                placed,
+                unplaced: [],
+                freeRects,
+                efficiency: (usedArea / totalArea) * 100,
+                usedArea,
+                totalArea,
+                cuttingCount: cutDetails.length,
+                firstCutDirection: 'RIP',
+                cutDetails,
+                ripOptimized: true
+            });
+
+            remaining = nextRemaining;
         }
 
         return {
             bins,
-            unplaced: remainingItems,
+            unplaced: [],
             totalEfficiency: this.calculateTotalEfficiency(bins),
-            mode: 'auto'
+            mode: 'auto',
+            engine: 'rip'
         };
+    }
+
+    getLengthRipOrientation(item) {
+        if (Math.round(item.width) === Math.round(this.binWidth) && item.height <= this.binHeight) {
+            return {
+                width: this.binWidth,
+                height: item.height,
+                rotated: !!item.rotated
+            };
+        }
+
+        if (item.rotatable &&
+            Math.round(item.height) === Math.round(this.binWidth) &&
+            item.width <= this.binHeight) {
+            return {
+                width: this.binWidth,
+                height: item.width,
+                rotated: !item.rotated
+            };
+        }
+
+        return null;
+    }
+
+    shouldPreferLengthRip(ripCandidate, selectedBins, selectedUnplaced) {
+        if (!ripCandidate || !ripCandidate.bins || ripCandidate.bins.length === 0) return false;
+        if (ripCandidate.unplaced && ripCandidate.unplaced.length > 0) return false;
+        if (!selectedBins || selectedBins.length === 0) return true;
+        if (selectedUnplaced && selectedUnplaced.length > 0) return true;
+        if (ripCandidate.bins.length > selectedBins.length) return false;
+        if (ripCandidate.bins.length < selectedBins.length) return true;
+        if (typeof window === 'undefined' || !window.CostCalculator) return false;
+
+        const settings = window.SettingsManager
+            ? window.SettingsManager.readFromUI()
+            : {
+                enableTrim: false,
+                cutPrice: window.CostCalculator.getCutPriceByThickness(
+                    window.CostCalculator.getBoardThickness()
+                )
+            };
+        const ripCost = window.CostCalculator.calculate(ripCandidate.bins, settings).totalCuttingCost;
+        const selectedCost = window.CostCalculator.calculate(selectedBins, settings).totalCuttingCost;
+        const hasRipFixedPrice = ripCandidate.bins.some(bin =>
+            window.CostCalculator.getLongSidePanelFixedPrice(bin) > 0
+        );
+
+        return hasRipFixedPrice && ripCost < selectedCost;
+    }
+
+    getTotalCuttingCount(bins) {
+        if (!Array.isArray(bins)) return Infinity;
+        return bins.reduce((sum, bin) => sum + (bin.cuttingCount || 0), 0);
+    }
+
+    buildMixedLengthRipCandidate(items) {
+        if (!items || items.length === 0) return null;
+
+        const ripItems = [];
+        const generalItems = [];
+        let hasRotatedRipItem = false;
+        items.forEach(item => {
+            const orientation = this.getLengthRipOrientation(item);
+            if (orientation) {
+                ripItems.push(item);
+                if (orientation.rotated) {
+                    hasRotatedRipItem = true;
+                }
+            } else {
+                generalItems.push(item);
+            }
+        });
+
+        if (ripItems.length === 0 || generalItems.length === 0) return null;
+        if (!hasRotatedRipItem) return null;
+
+        const ripCandidate = this.buildLengthRipCandidate(ripItems);
+        if (!ripCandidate || ripCandidate.unplaced.length > 0) return null;
+
+        const mixedRipBins = ripCandidate.bins.map(bin => this.cloneBin(bin));
+        const remainingGeneralItems = this.placeGeneralItemsInNonFixedRipBins(mixedRipBins, generalItems);
+
+        const generalResult = this.packAdaptiveBase(remainingGeneralItems);
+        if (!generalResult || generalResult.unplaced.length > 0) return null;
+
+        const bins = [...mixedRipBins, ...generalResult.bins];
+        return {
+            bins,
+            unplaced: [],
+            totalEfficiency: this.calculateTotalEfficiency(bins),
+            mode: 'auto',
+            engine: 'mixed-rip'
+        };
+    }
+
+    cloneBin(bin) {
+        return {
+            ...bin,
+            placed: [...(bin.placed || [])],
+            unplaced: [...(bin.unplaced || [])],
+            freeRects: [...(bin.freeRects || [])],
+            cutDetails: [...(bin.cutDetails || [])]
+        };
+    }
+
+    placeGeneralItemsInNonFixedRipBins(bins, generalItems) {
+        let remaining = [...generalItems].sort((a, b) => (b.width * b.height) - (a.width * a.height));
+        if (remaining.length === 0) return remaining;
+        if (typeof window === 'undefined' || !window.CostCalculator) return remaining;
+
+        bins.forEach(bin => {
+            if (remaining.length === 0) return;
+            if (window.CostCalculator.getLongSidePanelFixedPrice(bin) > 0) return;
+            remaining = this.placeItemsInBinFreeRects(bin, remaining);
+        });
+
+        return remaining;
+    }
+
+    placeItemsInBinFreeRects(bin, items) {
+        let remaining = [...items];
+        let freeRects = [...(bin.freeRects || [])];
+        const placed = [...(bin.placed || [])];
+        const originalPlacedCount = placed.length;
+        const cutDetails = [...(bin.cutDetails || [])];
+        const helper = new AdaptiveGuillotineBin(this.binWidth, this.binHeight, this.kerf);
+
+        while (remaining.length > 0 && freeRects.length > 0) {
+            let placedAny = false;
+            const nextFreeRects = [];
+
+            freeRects
+                .sort((a, b) => (b.width * b.height) - (a.width * a.height))
+                .forEach(rect => {
+                    if (remaining.length === 0) {
+                        nextFreeRects.push(rect);
+                        return;
+                    }
+                    if (!helper.canFitAny(rect, remaining)) {
+                        nextFreeRects.push(rect);
+                        return;
+                    }
+
+                    const best = helper.packRectFlexible(rect, remaining);
+                    if (!best || best.placed.length === 0) {
+                        nextFreeRects.push(rect);
+                        return;
+                    }
+
+                    placedAny = true;
+                    placed.push(...best.placed);
+                    remaining = best.unplaced;
+                    nextFreeRects.push(...(best.freeRects || []));
+                    cutDetails.push(...(best.cutDetails || []));
+                });
+
+            freeRects = helper.normalizeFreeRects(nextFreeRects);
+            if (!placedAny) break;
+        }
+
+        const usedArea = placed.reduce((sum, part) => sum + part.width * part.height, 0);
+        const totalArea = this.binWidth * this.binHeight;
+        bin.placed = placed;
+        bin.freeRects = freeRects;
+        bin.cutDetails = cutDetails;
+        bin.cuttingCount = cutDetails.length;
+        bin.usedArea = usedArea;
+        bin.totalArea = totalArea;
+        bin.efficiency = totalArea > 0 ? (usedArea / totalArea) * 100 : 0;
+        if (placed.length > originalPlacedCount) {
+            bin.firstCutDirection = 'MIXED_RIP';
+            bin.mixedRipOptimized = true;
+            bin.ripOptimized = false;
+        }
+
+        return remaining;
+    }
+
+    packAdaptiveBase(items) {
+        const binsA = [];
+        let remainingA = [...items];
+        while (remainingA.length > 0) {
+            const bin = new AdaptiveGuillotineBin(this.binWidth, this.binHeight, this.kerf);
+            const result = bin.pack(remainingA);
+            if (result.placed.length === 0) break;
+            if (result.unplaced.length > 0) {
+                this.tryPlaceResidualInAdaptive(result);
+            }
+            if (!this.isValidPackingResult({ bins: [result], unplaced: result.unplaced })) {
+                remainingA = [...remainingA];
+                break;
+            }
+            binsA.push(result);
+            remainingA = result.unplaced;
+        }
+
+        const binsB = [];
+        let remainingB = [...items];
+        while (remainingB.length > 0) {
+            const bin = new AdaptiveGuillotineBinB(this.binWidth, this.binHeight, this.kerf);
+            const result = bin.pack(remainingB);
+            if (result.placed.length === 0) break;
+            if (!this.isValidPackingResult({ bins: [result], unplaced: result.unplaced })) {
+                remainingB = [...remainingB];
+                break;
+            }
+            binsB.push(result);
+            remainingB = result.unplaced;
+        }
+
+        if (binsB.length === 0) {
+            return { bins: binsA, unplaced: remainingA, engine: 'A' };
+        }
+        if (binsA.length === 0) {
+            return { bins: binsB, unplaced: remainingB, engine: 'B' };
+        }
+        if (remainingA.length < remainingB.length) {
+            return { bins: binsA, unplaced: remainingA, engine: 'A' };
+        }
+        if (remainingB.length < remainingA.length) {
+            return { bins: binsB, unplaced: remainingB, engine: 'B' };
+        }
+        if (binsA.length < binsB.length) {
+            return { bins: binsA, unplaced: remainingA, engine: 'A' };
+        }
+        return { bins: binsB, unplaced: remainingB, engine: 'B' };
+    }
+
+    shouldPreferMixedLengthRip(mixedRipCandidate, selectedBins, selectedUnplaced) {
+        if (!mixedRipCandidate || !mixedRipCandidate.bins || mixedRipCandidate.bins.length === 0) return false;
+        if (mixedRipCandidate.unplaced && mixedRipCandidate.unplaced.length > 0) return false;
+        if (!selectedBins || selectedBins.length === 0) return true;
+        if (selectedUnplaced && selectedUnplaced.length > 0) return true;
+        if (typeof window === 'undefined' || !window.CostCalculator) return false;
+
+        const settings = window.SettingsManager
+            ? window.SettingsManager.readFromUI()
+            : {
+                enableTrim: false,
+                cutPrice: window.CostCalculator.getCutPriceByThickness(
+                    window.CostCalculator.getBoardThickness()
+                )
+            };
+        const mixedCost = window.CostCalculator.calculate(mixedRipCandidate.bins, settings).totalCuttingCost;
+        const selectedCost = window.CostCalculator.calculate(selectedBins, settings).totalCuttingCost;
+        const hasRipFixedPrice = mixedRipCandidate.bins.some(bin =>
+            window.CostCalculator.getLongSidePanelFixedPrice(bin) > 0
+        );
+
+        return hasRipFixedPrice && mixedCost < selectedCost;
+    }
+
+    isValidPackingResult(result) {
+        if (!result || !Array.isArray(result.bins)) return false;
+        return result.bins.every(bin => this.isValidBinPlacement(bin));
+    }
+
+    isValidBinPlacement(bin) {
+        if (!bin || !Array.isArray(bin.placed)) return false;
+        const width = Number.isFinite(bin.width) ? bin.width : this.binWidth;
+        const height = Number.isFinite(bin.height) ? bin.height : this.binHeight;
+        const epsilon = 0.01;
+        let usedArea = 0;
+
+        for (let i = 0; i < bin.placed.length; i++) {
+            const part = bin.placed[i];
+            if (![part.x, part.y, part.width, part.height].every(Number.isFinite)) {
+                return false;
+            }
+            if (part.width <= 0 || part.height <= 0) return false;
+            if (part.x < -epsilon || part.y < -epsilon) return false;
+            if (part.x + part.width > width + epsilon) return false;
+            if (part.y + part.height > height + epsilon) return false;
+
+            usedArea += part.width * part.height;
+            for (let j = i + 1; j < bin.placed.length; j++) {
+                const other = bin.placed[j];
+                const overlapX = Math.max(0,
+                    Math.min(part.x + part.width, other.x + other.width) -
+                    Math.max(part.x, other.x)
+                );
+                const overlapY = Math.max(0,
+                    Math.min(part.y + part.height, other.y + other.height) -
+                    Math.max(part.y, other.y)
+                );
+                if (overlapX > epsilon && overlapY > epsilon) {
+                    return false;
+                }
+            }
+        }
+
+        return usedArea <= (width * height) + epsilon;
     }
 
     /**
@@ -309,54 +763,63 @@ class GuillotinePacker {
             return false;
         }
 
-        let sourceFreeRects = Array.isArray(result.freeRects) ? result.freeRects : [];
+        let remaining = [...result.unplaced].sort((a, b) => (b.width * b.height) - (a.width * a.height));
+        let freeRects = Array.isArray(result.freeRects)
+            ? result.freeRects.filter(rect => rect.width > 0 && rect.height > 0)
+            : [];
+        if (freeRects.length === 0) return false;
 
-        // freeRects가 비어있으면 배치된 부품 기준으로 잔재 공간을 직접 계산
-        if (sourceFreeRects.length === 0) {
-            if (!result.placed || result.placed.length === 0) return false;
-            const maxY = Math.max(...result.placed.map(p => p.y + p.height));
-            const residualY = maxY + this.kerf;
-            const residualH = this.binHeight - residualY;
-            if (residualH <= 0) return false;
-            sourceFreeRects = [{ x: 0, y: residualY, width: this.binWidth, height: residualH }];
-        }
+        const helper = new AdaptiveGuillotineBin(this.binWidth, this.binHeight, this.kerf);
+        const placed = [...(result.placed || [])];
+        const cutDetails = [...(result.cutDetails || [])];
+        let placedAny = false;
 
-        const freeRects = [...sourceFreeRects]
-            .filter(rect => rect.width > 0 && rect.height > 0)
-            .sort((a, b) => (b.width * b.height) - (a.width * a.height));
+        while (remaining.length > 0 && freeRects.length > 0) {
+            let placedInPass = false;
+            const nextFreeRects = [];
 
-        const candidates = [...result.unplaced]
-            .sort((a, b) => (b.width * b.height) - (a.width * a.height));
-
-        for (const rect of freeRects) {
-            for (const item of candidates) {
-                const orientations = [{ w: item.width, h: item.height, rotated: false }];
-                if (item.rotatable) {
-                    orientations.push({ w: item.height, h: item.width, rotated: true });
-                }
-
-                for (const orient of orientations) {
-                    if (orient.w <= rect.width && orient.h <= rect.height + this.kerf) {
-                        result.placed.push({
-                            ...item,
-                            x: rect.x,
-                            y: rect.y,
-                            width: orient.w,
-                            height: orient.h,
-                            rotated: orient.rotated
-                        });
-
-                        result.unplaced = result.unplaced.filter(p => p.id !== item.id);
-                        result.usedArea = result.placed.reduce((sum, p) => sum + p.width * p.height, 0);
-                        result.efficiency = (result.usedArea / result.totalArea) * 100;
-                        result.cuttingCount = this.recomputeAdaptiveCuttingCount(result.placed);
-                        return true;
+            freeRects
+                .sort((a, b) => (b.width * b.height) - (a.width * a.height))
+                .forEach(rect => {
+                    if (remaining.length === 0) {
+                        nextFreeRects.push(rect);
+                        return;
                     }
-                }
-            }
+                    if (!helper.canFitAny(rect, remaining)) {
+                        nextFreeRects.push(rect);
+                        return;
+                    }
+
+                    const best = helper.packRectFlexible(rect, remaining);
+                    if (!best || best.placed.length === 0) {
+                        nextFreeRects.push(rect);
+                        return;
+                    }
+
+                    placedAny = true;
+                    placedInPass = true;
+                    placed.push(...best.placed);
+                    remaining = best.unplaced;
+                    nextFreeRects.push(...(best.freeRects || []));
+                    cutDetails.push(...(best.cutDetails || []));
+                });
+
+            freeRects = helper.normalizeFreeRects(nextFreeRects);
+            if (!placedInPass) break;
         }
 
-        return false;
+        if (!placedAny) return false;
+
+        result.placed = placed;
+        result.unplaced = remaining;
+        result.freeRects = freeRects;
+        result.cutDetails = cutDetails;
+        result.usedArea = result.placed.reduce((sum, p) => sum + p.width * p.height, 0);
+        result.totalArea = Number.isFinite(result.totalArea) ? result.totalArea : this.binWidth * this.binHeight;
+        result.efficiency = result.totalArea > 0 ? (result.usedArea / result.totalArea) * 100 : 0;
+        result.cuttingCount = cutDetails.length > 0 ? cutDetails.length : this.recomputeAdaptiveCuttingCount(result.placed);
+
+        return this.isValidPackingResult({ bins: [result], unplaced: result.unplaced });
     }
 
     recomputeAdaptiveCuttingCount(placed) {
@@ -499,6 +962,8 @@ class AdaptiveGuillotineBin {
         const totalArea = this.width * this.height;
 
         return {
+            width: this.width,
+            height: this.height,
             placed: selected.placed,
             unplaced: selected.unplaced,
             freeRects: selected.freeRects,
@@ -551,7 +1016,58 @@ class AdaptiveGuillotineBin {
 
         const placedArea = placed.reduce((sum, part) => sum + (part.width * part.height), 0);
         const score = this.computeEfficiencyScore(placedArea, freeRects);
+        return {
+            firstDirection,
+            placed,
+            unplaced: remaining,
+            freeRects,
+            placedArea,
+            score,
+            cutDetails
+        };
+    }
 
+    simulateFirstDirectionB(items, firstDirection) {
+        const rootRect = { x: 0, y: 0, width: this.width, height: this.height };
+        let result;
+        if (firstDirection === 'H') {
+            result = this.guillotineCutB(rootRect, items);
+        } else {
+            result = this.packVerticalPrimary(rootRect, items);
+        }
+        let placed = [...result.placed];
+        let remaining = result.unplaced;
+        let freeRects = [...result.freeRects];
+        let cutDetails = [...(result.cutDetails || [])];
+
+        // 하단 전폭 freeRect에 남은 부품 배치
+        while (remaining.length > 0 && freeRects.length > 0) {
+            let placedAny = false;
+            const nextFreeRects = [];
+            freeRects
+                .sort((a, b) => (b.width * b.height) - (a.width * a.height))
+                .forEach(rect => {
+                    if (!this.canFitAny(rect, remaining)) {
+                        nextFreeRects.push(rect);
+                        return;
+                    }
+                    const best = this.packRectFlexible(rect, remaining);
+                    if (best.placed.length === 0) {
+                        nextFreeRects.push(rect);
+                        return;
+                    }
+                    placedAny = true;
+                    placed.push(...best.placed);
+                    remaining = best.unplaced;
+                    nextFreeRects.push(...best.freeRects);
+                    cutDetails.push(...(best.cutDetails || []));
+                });
+            freeRects = this.normalizeFreeRects(nextFreeRects);
+            if (!placedAny) break;
+        }
+
+        const placedArea = placed.reduce((sum, p) => sum + p.width * p.height, 0);
+        const score = this.computeEfficiencyScore(placedArea, freeRects);
         return {
             firstDirection,
             placed,
@@ -564,10 +1080,9 @@ class AdaptiveGuillotineBin {
     }
 
     pickBetterSimulation(a, b) {
-        if (a.score !== b.score) return a.score > b.score ? a : b;
-        if (a.placedArea !== b.placedArea) return a.placedArea > b.placedArea ? a : b;
-        if (a.placed.length !== b.placed.length) return a.placed.length > b.placed.length ? a : b;
-        return a.unplaced.length <= b.unplaced.length ? a : b;
+        // 무조건 H(가로) 우선
+        if (a.firstDirection === 'H') return a;
+        return b;
     }
 
     packRectFlexible(rect, items) {
@@ -616,13 +1131,13 @@ class AdaptiveGuillotineBin {
                     continue;
                 }
 
+                // 하부 공간 최대화: usedArea 같으면 stripHeight 작은 것 우선
                 if (attempt.usedArea > bestAttempt.usedArea) {
                     bestAttempt = attempt;
                     continue;
                 }
-
                 if (attempt.usedArea === bestAttempt.usedArea &&
-                    attempt.placed.length > bestAttempt.placed.length) {
+                    attempt.stripSize < bestAttempt.stripSize) {
                     bestAttempt = attempt;
                 }
             }
@@ -632,7 +1147,16 @@ class AdaptiveGuillotineBin {
             placed.push(...bestAttempt.placed);
             remaining = bestAttempt.unplaced;
             if (bestAttempt.rightFreeRect) {
-                freeRects.push(bestAttempt.rightFreeRect);
+                const subResult = this.packRectFlexible(
+                    bestAttempt.rightFreeRect, remaining
+                );
+                placed.push(...subResult.placed);
+                remaining = subResult.unplaced;
+                freeRects.push(...subResult.freeRects);
+                cutDetails.push(...(subResult.cutDetails || []));
+            }
+            if (bestAttempt.bottomFreeRects) {
+                freeRects.push(...bestAttempt.bottomFreeRects);
             }
             cutDetails.push(...(bestAttempt.cutDetails || []));
             currentY = stripStartY + bestAttempt.stripSize;
@@ -651,6 +1175,217 @@ class AdaptiveGuillotineBin {
                 height: bottomHeight
             });
         }
+        return {
+            placed,
+            unplaced: remaining,
+            freeRects: this.normalizeFreeRects(freeRects),
+            cutDetails
+        };
+    }
+
+    guillotineCutB(rect, items, fixedHeight = null) {
+        if (!items || items.length === 0 || rect.width <= 0 || rect.height <= 0) {
+            return { placed: [], unplaced: [...(items||[])], freeRects: [], cutDetails: [] };
+        }
+
+        // 1. rect에 들어갈 수 있는 부품 필터
+        const fittable = items.filter(item => {
+            if (item.height <= rect.height && item.width <= rect.width) return true;
+            if (item.rotatable && item.width <= rect.height && item.height <= rect.width) return true;
+            return false;
+        });
+
+        if (fittable.length === 0) {
+            return { placed: [], unplaced: [...items], freeRects: [rect], cutDetails: [] };
+        }
+
+        // 2. 높이 후보 수집
+        const heightCandidates = new Set();
+        fittable.forEach(item => {
+            // 원래 방향
+            if (item.height <= rect.height && item.width <= rect.width) {
+                heightCandidates.add(item.height);
+            }
+            // 회전 방향 (회전 시 height가 더 작아지는 경우만)
+            if (item.rotatable &&
+                item.width < item.height &&
+                item.width <= rect.height &&
+                item.height <= rect.width) {
+                heightCandidates.add(item.width);
+            }
+        });
+
+        // 3. 하부 짜투리 최소 높이 선택
+        let bestHeight = fixedHeight;
+        if (!bestHeight) {
+            let minWaste = Infinity;
+            for (const h of heightCandidates) {
+                const canFit = fittable.filter(item =>
+                    (item.height <= h && item.width <= rect.width) ||
+                    (item.rotatable && item.width <= h && item.height <= rect.width)
+                );
+                if (canFit.length === 0) continue;
+                // 가장 큰 부품이 이 높이에 들어가는지 확인
+                const largest = canFit[0];
+                const fitsNormal = largest.height <= h && largest.width <= rect.width;
+                const fitsRotated = largest.rotatable && largest.width <= h && largest.height <= rect.width;
+                if (!fitsNormal && !fitsRotated) continue;
+                const waste = rect.height - h;
+                if (waste < minWaste) {
+                    minWaste = waste;
+                    bestHeight = h;
+                }
+            }
+        }
+
+        if (!bestHeight) {
+            return { placed: [], unplaced: [...items], freeRects: [rect], cutDetails: [] };
+        }
+
+        // 나머지 부품이 스트립에 못 들어가면 가로 배치 전환
+        if (fittable.length === 1 && fittable[0].rotatable) {
+            const item = fittable[0];
+            // 가로(길이) 배치: 긴 치수를 width(길이방향)으로
+            const longDim = Math.max(item.width, item.height);
+            const shortDim = Math.min(item.width, item.height);
+            if (longDim <= rect.width && shortDim <= rect.height) {
+                const rotated = item.height > item.width;
+                const placed = [{
+                    ...item,
+                    x: rect.x,
+                    y: rect.y,
+                    width: longDim,
+                    height: shortDim,
+                    rotated
+                }];
+                const remaining = items.filter(i => i.id !== item.id);
+                const freeRects = [];
+                const rightX = rect.x + longDim + this.kerf;
+                const rightW = rect.width - longDim - this.kerf;
+                if (rightW > 0) {
+                    freeRects.push({ x: rightX, y: rect.y, width: rightW, height: shortDim });
+                }
+                const bottomY = rect.y + shortDim + this.kerf;
+                const bottomH = rect.height - shortDim - this.kerf;
+                if (bottomH > 0) {
+                    freeRects.push({ x: rect.x, y: bottomY, width: rect.width, height: bottomH });
+                }
+                const cutDetails = [];
+                const w = longDim;
+                const h = shortDim;
+                if (w < rect.width) {
+                    cutDetails.push({
+                        axis: 'X',
+                        pos: rect.x + w,
+                        spanStart: rect.y,
+                        spanEnd: rect.y + h
+                    });
+                }
+                if (h < rect.height) {
+                    cutDetails.push({
+                        axis: 'Y',
+                        pos: rect.y + h,
+                        spanStart: rect.x,
+                        spanEnd: rect.x + rect.width
+                    });
+                }
+                return {
+                    placed,
+                    unplaced: remaining,
+                    freeRects: this.normalizeFreeRects(freeRects),
+                    cutDetails
+                };
+            }
+        }
+
+        // 4. 부품 배치 (면적 큰 순, 좌→우)
+        const stripItems = fittable
+            .filter(item =>
+                item.height === bestHeight && item.width <= rect.width
+            )
+            .sort((a, b) => (b.width * b.height) - (a.width * a.height));
+
+        const placed = [];
+        const cutDetails = [];
+        const placedIds = new Set();
+        let currentX = rect.x;
+
+        for (const item of stripItems) {
+            if (placedIds.has(item.id)) continue;
+            let w = item.width, h = item.height, rotated = false;
+            if (h > bestHeight && item.rotatable && item.width <= bestHeight) {
+                w = item.height; h = item.width; rotated = true;
+            }
+            if (h > bestHeight) continue;
+            const x = currentX === rect.x ? rect.x : currentX + this.kerf;
+            if (x + w > rect.x + rect.width) continue;
+            placed.push({ ...item, x, y: rect.y, width: w, height: h, rotated });
+            placedIds.add(item.id);
+            currentX = x + w;
+        }
+
+        let remaining = items.filter(i => !placedIds.has(i.id));
+        const freeRects = [];
+
+        // 5. 우측 공간 → 재귀
+        const rightX = currentX + this.kerf;
+        const rightW = rect.x + rect.width - rightX;
+        let rightResult = null;
+        if (rightW > 0 && remaining.length > 0) {
+            rightResult = this.guillotineCutB(
+                { x: rightX, y: rect.y, width: rightW, height: bestHeight },
+                remaining
+            );
+            placed.push(...rightResult.placed);
+            remaining = rightResult.unplaced;
+            freeRects.push(...rightResult.freeRects);
+        } else if (rightW > 0) {
+            freeRects.push({ x: rightX, y: rect.y, width: rightW, height: bestHeight });
+        }
+
+        // 6. 하단 공간 → 재귀
+        const bottomY = rect.y + bestHeight + this.kerf;
+        const bottomH = rect.y + rect.height - bottomY;
+        let bottomResult = null;
+        if (bottomH > 0 && remaining.length > 0) {
+            bottomResult = this.guillotineCutB(
+                { x: rect.x, y: bottomY, width: rect.width, height: bottomH },
+                remaining
+            );
+            placed.push(...bottomResult.placed);
+            remaining = bottomResult.unplaced;
+            freeRects.push(...bottomResult.freeRects);
+        } else if (bottomH > 0) {
+            freeRects.push({ x: rect.x, y: bottomY, width: rect.width, height: bottomH });
+        }
+
+        // 가로 절단선 (bestHeight 위치, 현재 rect 전체 길이 관통)
+        if (bestHeight < rect.height) {
+            cutDetails.push({
+                axis: 'Y',
+                pos: rect.y + bestHeight,
+                spanStart: rect.x,
+                spanEnd: rect.x + rect.width
+            });
+        }
+
+        // 세로 절단선 (각 부품 우측, 현재 스트립 폭 관통)
+        let prevX = rect.x;
+        placed.forEach(p => {
+            if (Math.round(p.x) > Math.round(prevX)) {
+                cutDetails.push({
+                    axis: 'X',
+                    pos: prevX === rect.x ? p.x : p.x,
+                    spanStart: rect.y,
+                    spanEnd: rect.y + bestHeight
+                });
+            }
+            prevX = p.x + p.width;
+        });
+
+        // 재귀 결과 cutDetails 합치기
+        if (rightResult) cutDetails.push(...(rightResult.cutDetails || []));
+        if (bottomResult) cutDetails.push(...(bottomResult.cutDetails || []));
 
         return {
             placed,
@@ -732,6 +1467,7 @@ class AdaptiveGuillotineBin {
     fillHorizontalStrip(rect, stripStartY, stripHeight, items) {
         const oriented = [];
         const cutDetails = [];
+        const freeRects = [];
 
         items.forEach(item => {
             if (item.height === stripHeight && item.width <= rect.width) {
@@ -774,6 +1510,18 @@ class AdaptiveGuillotineBin {
                 rotated: candidate.rotated
             });
 
+            // 부품 아래 남은 공간 freeRect 등록
+            const itemBottomY = stripStartY + candidate.height;
+            const remainingH = stripHeight - candidate.height;
+            if (remainingH > 0) {
+                freeRects.push({
+                    x: x,
+                    y: itemBottomY,
+                    width: candidate.width,
+                    height: remainingH
+                });
+            }
+
             placedIds.add(candidate.item.id);
             currentX = x + candidate.width;
             usedWidthEnd = currentX;
@@ -806,6 +1554,7 @@ class AdaptiveGuillotineBin {
             stripSize: stripHeight,
             usedArea,
             rightFreeRect,
+            bottomFreeRects: freeRects,
             cutDetails
         };
     }
@@ -920,6 +1669,29 @@ class AdaptiveGuillotineBin {
         };
     }
 
+    filterCutDetailsByPlaced(cutDetails, placed) {
+        if (!Array.isArray(cutDetails) || !Array.isArray(placed)) {
+            return [];
+        }
+
+        return cutDetails.filter(cut => {
+            const pos = Math.round(cut.pos);
+            return placed.some(part => {
+                if (cut.axis === 'Y') {
+                    const edgeTop = Math.round(part.y);
+                    const edgeBottom = Math.round(part.y + part.height);
+                    const overlaps = cut.spanEnd > part.x && cut.spanStart < part.x + part.width;
+                    return overlaps && (pos === edgeTop || pos === edgeBottom);
+                }
+
+                const edgeLeft = Math.round(part.x);
+                const edgeRight = Math.round(part.x + part.width);
+                const overlaps = cut.spanEnd > part.y && cut.spanStart < part.y + part.height;
+                return overlaps && (pos === edgeLeft || pos === edgeRight);
+            });
+        });
+    }
+
     collectStripSizes(items, maxPrimarySize, crossSize, direction) {
         const sizes = new Set();
 
@@ -985,6 +1757,29 @@ class AdaptiveGuillotineBin {
         // 기준 문서(가로세로_알고리즘_정리.md)에는 단절 패널티 수치가 정의되어 있지 않음
         // 현재 단계에서는 임의 계수 없이 고정값 0을 사용
         return 0;
+    }
+}
+
+class AdaptiveGuillotineBinB extends AdaptiveGuillotineBin {
+    pack(items) {
+        const rootRect = { x: 0, y: 0, width: this.width, height: this.height };
+        const result = this.guillotineCutB(rootRect, items);
+        const usedArea = result.placed.reduce((s, p) => s + p.width * p.height, 0);
+        const totalArea = this.width * this.height;
+        const cutDetails = this.filterCutDetailsByPlaced(result.cutDetails || [], result.placed);
+        return {
+            width: this.width,
+            height: this.height,
+            placed: result.placed,
+            unplaced: result.unplaced,
+            freeRects: result.freeRects,
+            efficiency: (usedArea / totalArea) * 100,
+            usedArea,
+            totalArea,
+            cuttingCount: cutDetails.length,
+            firstCutDirection: 'H',
+            cutDetails
+        };
     }
 }
 
