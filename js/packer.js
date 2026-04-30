@@ -579,7 +579,7 @@ class GuillotinePacker {
                     result.unplaced = fillResult.unplaced;
                     result.usedArea = bin.placed.reduce((sum, p) => sum + p.width * p.height, 0);
                     result.efficiency = (result.usedArea / result.totalArea) * 100;
-                    result.cuttingCount = bin.cutLinesX.size + bin.cutLinesY.size;
+                    result.cuttingCount = bin.cutLinesX.size;
                 }
             }
 
@@ -817,7 +817,9 @@ class GuillotinePacker {
         result.usedArea = result.placed.reduce((sum, p) => sum + p.width * p.height, 0);
         result.totalArea = Number.isFinite(result.totalArea) ? result.totalArea : this.binWidth * this.binHeight;
         result.efficiency = result.totalArea > 0 ? (result.usedArea / result.totalArea) * 100 : 0;
-        result.cuttingCount = cutDetails.length > 0 ? cutDetails.length : this.recomputeAdaptiveCuttingCount(result.placed);
+        result.cuttingCount = cutDetails.length > 0
+            ? cutDetails.length
+            : this.recomputeAdaptiveCuttingCount(result.placed);
 
         return this.isValidPackingResult({ bins: [result], unplaced: result.unplaced });
     }
@@ -1336,10 +1338,24 @@ class AdaptiveGuillotineBin {
                 { x: rightX, y: rect.y, width: rightW, height: bestHeight },
                 remaining
             );
+            if (rightResult.placed.length === 0 && rightW > 0) {
+                cutDetails.push({
+                    axis: 'X',
+                    pos: currentX,
+                    spanStart: rect.y,
+                    spanEnd: rect.y + rect.height
+                });
+            }
             placed.push(...rightResult.placed);
             remaining = rightResult.unplaced;
             freeRects.push(...rightResult.freeRects);
         } else if (rightW > 0) {
+            cutDetails.push({
+                axis: 'X',
+                pos: currentX,
+                spanStart: rect.y,
+                spanEnd: rect.y + rect.height
+            });
             freeRects.push({ x: rightX, y: rect.y, width: rightW, height: bestHeight });
         }
 
@@ -1909,7 +1925,7 @@ class WidthStripBin {
             efficiency: (usedArea / totalArea) * 100,
             usedArea,
             totalArea,
-            cuttingCount: this.cutLinesX.size + this.cutLinesY.size
+            cuttingCount: this.cutLinesX.size
         };
     }
 
