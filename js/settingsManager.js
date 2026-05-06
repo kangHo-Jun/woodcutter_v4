@@ -11,7 +11,7 @@ class SettingsManager {
      */
     static DEFAULT_SETTINGS = {
         kerf: 4.2,
-        enableTrim: true,
+        enableTrim: false,
         trimMargin: 5,
         cutDirection: 'auto',
         cutMethod: 'guillotine',
@@ -69,7 +69,9 @@ class SettingsManager {
         validated.kerf = this.DEFAULT_SETTINGS.kerf;
 
         // 트리밍 사용
-        validated.enableTrim = true;
+        validated.enableTrim = typeof settings.enableTrim === 'boolean'
+            ? settings.enableTrim
+            : this.DEFAULT_SETTINGS.enableTrim;
 
         // 트리밍 여백
         validated.trimMargin = this.validateNumber(settings.trimMargin, 0, 50, this.DEFAULT_SETTINGS.trimMargin);

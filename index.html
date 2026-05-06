@@ -67,9 +67,12 @@
                 </div>
                 <!-- 트리밍 옵션 -->
                 <div class="form-row trim-row">
-                    <div class="checkbox-group trim-checkbox">
-                        <input type="checkbox" id="enableTrim" checked>
-                        <label for="enableTrim">전단여부</label>
+                    <div class="checkbox-group trim-checkbox" style="display:flex; align-items:center; gap:8px; flex-wrap:nowrap;">
+                        <input type="checkbox" id="enableTrim">
+                        <label for="enableTrim" style="margin:0; white-space:nowrap;">전단여부</label>
+                    </div>
+                    <div id="trimWarning" style="display:none; color:orange; font-size:12px; margin-top:4px;">
+                        ⚠ 정확한 재단을 원할 경우만 사용<br>(약 14mm 소실됨)
                     </div>
                 </div>
             </section>

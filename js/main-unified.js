@@ -33,6 +33,7 @@ class WoodcutterApp {
 
         // 초기 상태 설정
         this.updateCutPriceDisplay();
+        this.updateTrimWarning();
 
         // 반응형 체크
         this.checkResponsive();
@@ -143,9 +144,12 @@ class WoodcutterApp {
         // Trim checkbox
         const enableTrim = document.getElementById('enableTrim');
         const trimMargin = document.getElementById('trimMargin');
-        if (enableTrim && trimMargin) {
+        if (enableTrim) {
             enableTrim.addEventListener('change', () => {
-                trimMargin.disabled = !enableTrim.checked;
+                if (trimMargin) {
+                    trimMargin.disabled = !enableTrim.checked;
+                }
+                this.updateTrimWarning();
             });
         }
 
@@ -157,6 +161,14 @@ class WoodcutterApp {
                 el.addEventListener('change', () => this.saveSettings());
             }
         });
+    }
+
+    updateTrimWarning() {
+        const enableTrim = document.getElementById('enableTrim');
+        const trimWarning = document.getElementById('trimWarning');
+
+        if (!trimWarning) return;
+        trimWarning.style.display = enableTrim && enableTrim.checked ? 'block' : 'none';
     }
 
     /**
@@ -520,7 +532,7 @@ class WoodcutterApp {
 
             const trimEnabled = settings.enableTrim === true;
             const trimMargin = trimEnabled ? (parseFloat(settings.trimMargin) || 0) : 0;
-            const effectiveBoardWidth = this.state.boardSpec.width - trimMargin;
+            const effectiveBoardWidth = this.state.boardSpec.width - (trimEnabled ? 14 : 0);
             const effectiveBoardHeight = this.state.boardSpec.height;
 
             if (trimEnabled && (effectiveBoardWidth <= 0 || effectiveBoardHeight <= 0)) {
@@ -743,7 +755,7 @@ class WoodcutterApp {
         const trimSettings = window.SettingsManager ? SettingsManager.readFromUI() : {};
         const trimEnabled = trimSettings.enableTrim === true;
         const trimMargin = trimEnabled ? (parseFloat(trimSettings.trimMargin) || 0) : 0;
-        const boardWidth = this.state.boardSpec.width - trimMargin;
+        const boardWidth = this.state.boardSpec.width - (trimEnabled ? 14 : 0);
         const boardHeight = this.state.boardSpec.height;
         const isPortraitBoard = false;
         const renderBoardWidth = boardHeight;  // 길이 = 가로
@@ -1428,7 +1440,8 @@ class WoodcutterApp {
             document.getElementById('boardHeight').value = '2440';
             document.getElementById('boardThickness').value = '18';
             document.getElementById('considerGrain').checked = false;
-            document.getElementById('enableTrim').checked = true;
+            document.getElementById('enableTrim').checked = false;
+            this.updateTrimWarning();
 
             this.renderPartsList();
 
@@ -1523,6 +1536,7 @@ class WoodcutterApp {
                         this.state.updateSettings(project.settings);
                         if (window.SettingsManager) {
                             SettingsManager.applyToUI(project.settings);
+                            this.updateTrimWarning();
                         }
                     }
 
