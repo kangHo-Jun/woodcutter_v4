@@ -348,7 +348,8 @@ class WoodcutterApp {
 
         if (hasError) return;
 
-        this.state.addPart({ width, height, qty, rotatable });
+        const id = String.fromCharCode(65 + this.state.cuttingList.length);
+        this.state.addPart({ id, width, height, qty, rotatable, allowRotate: rotatable });
 
         partWidthEl.value = '';
         partHeightEl.value = '';
@@ -554,18 +555,20 @@ class WoodcutterApp {
             const boardShort = Math.min(boardW, boardH);
 
             const items = this.state.cuttingList.map(part => {
+                const effectiveAllowRotate = part.allowRotate && !considerGrain;
                 // 나무결 ON: 부품 긴값 → 판재 긴축, 부품 짧은값 → 판재 짧은축
                 const pw = considerGrain
                     ? (boardLongIsX ? Math.max(part.width, part.height) : Math.min(part.width, part.height))
-                    : (!part.rotatable ? part.height : part.width);
+                    : (!part.allowRotate ? part.height : part.width);
                 const ph = considerGrain
                     ? (boardLongIsX ? Math.min(part.width, part.height) : Math.max(part.width, part.height))
-                    : (!part.rotatable ? part.width : part.height);
+                    : (!part.allowRotate ? part.width : part.height);
                 return {
+                    id: part.id,
                     width: pw,
                     height: ph,
                     qty: part.qty,
-                    rotatable: part.rotatable && !considerGrain
+                    allowRotate: effectiveAllowRotate
                 };
             });
 
