@@ -106,6 +106,11 @@ woodcutter_v3/
 - ✅ 실시간 검증
 - ✅ 명확한 책임 분리
 
+## 관련 사이트
+- [대산 건축자재 공식 사이트](https://daesan.ai)
+- [대산블로그] (https://blog.naver.com/daesan3833)
+- [건축자재 인사이드 블로그](https://daesan-inside.blogspot.com/)
+
 ## 📄 라이선스
 
 프로젝트 라이선스에 따름
