@@ -1,5 +1,14 @@
 # v4 인계
 
+## 2026-10-13 — 계산 멈춤 방어 이식 및 푸시 승인
+
+- 사용자 `v10, v4, test에 반영 후 푸시` 지시로 이번 v4 이식을 승인했다. 이전 v4 읽기전용 범위보다 최신 명시 요청을 우선 적용한다.
+- 수정전1c532f8에 로컬복원태그freeze-before-20261013 생성. 기존packer는Test수정전태그와SHA-256동일 확인. 이미검증·배포된Test/v10의packer만복사하고 index의packerURL을20261013-partition-budget-1로변경했다. 고유main/settings/cost/UI는미수정.
+- v4실제엔진신규23/23PASS. Chromium기존11사례배치/잔재/절단/요금완전동일, 전단CASE10유효폭1056mm보존. 원본24개PC/모바일뷰직접입력까지총13사례PASS,PDF13개다운로드·10MB이하·상태보존,JS예외0.
+- 사진입력1장24개미배치0. PC계산4.5ms/모바일뷰4.3ms(물리휴대폰측정아님). Test/v4/v10의packer바이트동일. 노드·메모리·시간예산초과시정상baseline복귀,31개이상비트마스크방어.
+- 증거 ../woodcutter_Test/output/partition-budget/v4/ 및 browser-v4.txt. 공용재현 harness/partition-budget/browser-check.cjs가v4고유규칙과공개URL검증을지원하도록보강됨.
+- 이커밋을origin/main에푸시하고복원태그를원격보관한다. 최종Pages/공개사이트검증결과와세저장소커밋은상위HANDOFF.md에기록한다.
+
 ## 2026-10-08 — 잔재 치수 표시 수정 및 Test → V4/V10 이식 완료
 
 - 사용자 지시: GitHub 수정전 백업 → Test TDD/11사례 검증 → V4/V10 이식. 세 저장소에 `2026-10-08_잔재표시_수정전` annotated tag 원격 보관 완료(Test2eaeb9a, v4 34c989f, v10 210e07a).
