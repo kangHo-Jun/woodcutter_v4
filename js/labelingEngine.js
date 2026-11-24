@@ -71,17 +71,18 @@ class LabelingEngine {
      * @returns {Array} - 라벨이 추가된 배치 부품
      */
     static mapLabelsToPlaced(placedParts, labeledGroups) {
-        return placedParts.map(part => {
-            // 정방향 또는 회전된 부품 모두 매칭 (가로/세로 바뀌어도 같은 부품)
-            const group = labeledGroups.find(g =>
-                (g.width === part.width && g.height === part.height) ||
-                (g.width === part.height && g.height === part.width)
-            );
-            return {
-                ...part,
-                label: group ? group.label : '?'
-            };
-        });
+        return placedParts.map(part => ({ ...part, label: this.findLabelForPart(part, labeledGroups) }));
+    }
+
+    static findLabelForPart(part, labeledGroups) {
+        const sameSize = g => (g.width === part.width && g.height === part.height) ||
+            (g.width === part.height && g.height === part.width);
+        const group = labeledGroups.find(g => sameSize(g) &&
+            g.parts.some(source => source.originalIndex === part.originalId));
+        if (group) return group.label;
+        // Older engines may lack an index. Only use an unambiguous size match.
+        const matches = labeledGroups.filter(sameSize);
+        return matches.length === 1 ? matches[0].label : '?';
     }
 
     /**

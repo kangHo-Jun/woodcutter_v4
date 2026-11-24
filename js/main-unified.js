@@ -11,6 +11,7 @@ class WoodcutterApp {
         this.isMobile = window.innerWidth < 1024;
         this.renderer = null;
         this.groupCanvases = []; // 그룹별 캔버스 저장
+        this.partRotationPreference = true;
         this.residualDisplayContext = new WeakMap(); // rendering metadata only; results stay immutable
     }
 
@@ -42,6 +43,12 @@ class WoodcutterApp {
 
         // 상태 변경 리스너
         this.state.subscribe('cuttingList', () => this.renderPartsList());
+        this.state.subscribe('result', () => this.updateCutPriorityStatus());
+        this.state.subscribe('settings', () => this.updateCutPriorityStatus());
+        this.state.subscribe('boardSpec', () => this.updateCutPriorityStatus());
+        this.state.subscribe('cuttingList', () => this.updateCutPriorityStatus());
+        document.addEventListener('input', () => this.updateCutPriorityStatus());
+        this.syncGrainControls();
 
         // Init complete
     }
@@ -120,6 +127,15 @@ class WoodcutterApp {
         if (calculateBtn) {
             calculateBtn.addEventListener('click', () => this.handleCalculate());
         }
+        ['priorityHorizontal', 'priorityVertical'].forEach(id => {
+            const choice = document.getElementById(id);
+            if (choice) choice.addEventListener('change', () => {
+                if (!choice.checked) return;
+                document.getElementById('cutDirection').value = choice.value;
+                this.saveSettings();
+                this.updateCutPriorityStatus();
+            });
+        });
 
         // PDF buttons
         const downloadPdfBtn = document.getElementById('downloadPdfBtn');
@@ -147,15 +163,13 @@ class WoodcutterApp {
         const trimMargin = document.getElementById('trimMargin');
         if (enableTrim) {
             enableTrim.addEventListener('change', () => {
-                if (trimMargin) {
-                    trimMargin.disabled = !enableTrim.checked;
-                }
+                if (trimMargin) trimMargin.disabled = !enableTrim.checked;
                 this.updateTrimWarning();
             });
         }
 
         // Settings auto-save
-        const settingInputs = ['kerfInput', 'enableTrim', 'trimMargin', 'cutDirection'];
+        const settingInputs = ['kerfInput', 'enableTrim', 'trimMargin', 'cutDirection', 'groupIdenticalParts', 'unifyPatterns'];
         settingInputs.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
@@ -203,6 +217,8 @@ class WoodcutterApp {
         if (panel === 'left') leftPanel.classList.add('active');
         else if (panel === 'center') centerPanel.classList.add('active');
         else if (panel === 'right') rightPanel.classList.add('active');
+        // A long input form must not leave the next panel under the sticky tabs.
+        if (this.isMobile) window.scrollTo(0, 0);
     }
 
     /**
@@ -244,18 +260,30 @@ class WoodcutterApp {
 
         this.state.updateBoardSpec({ considerGrain });
 
-        if (partRotatable) {
-            if (considerGrain) {
-                partRotatable.checked = false;
-                partRotatable.disabled = true;
-            } else {
-                partRotatable.disabled = false;
-                partRotatable.checked = true;
-                // 나무결 OFF 전환 시 기존 부품 rotatable 동기화
-                this.state.cuttingList.forEach(part => { part.rotatable = true; });
-                this.state.update('cuttingList', this.state.cuttingList);
-            }
+        if (partRotatable && !partRotatable.disabled) {
+            this.partRotationPreference = partRotatable.checked;
         }
+        this.syncGrainControls();
+        this.renderPartsList();
+        this.updateCutPriorityStatus();
+    }
+
+    syncGrainControls() {
+        const spec = this.state.boardSpec;
+        const checkbox = document.getElementById('considerGrain');
+        if (checkbox) checkbox.checked = spec.considerGrain;
+        const rotation = document.getElementById('partRotatable');
+        if (rotation) {
+            rotation.disabled = spec.considerGrain;
+            rotation.checked = spec.considerGrain ? false : this.partRotationPreference;
+        }
+        const legacy = spec.grainRule === PartOrientation.LEGACY;
+        const notice = document.getElementById('legacyGrainNotice');
+        const hint = document.getElementById('grainDirectionHint');
+        if (notice) notice.hidden = !legacy;
+        if (hint) hint.textContent = legacy
+            ? '체크하면 부품의 긴 변을 판재의 나무결 방향에 맞춥니다.'
+            : '체크하면 입력한 ‘길이’를 판재의 나무결 방향에 맞춥니다.';
     }
 
     /**
@@ -320,7 +348,8 @@ class WoodcutterApp {
         const width = parseFloat(partWidthEl.value);
         const height = parseFloat(partHeightEl.value);
         const qty = parseInt(partQtyEl.value) || 1;
-        const rotatable = partRotatableEl ? partRotatableEl.checked : true;
+        const rotatable = this.state.boardSpec.considerGrain ? this.partRotationPreference
+            : (partRotatableEl ? partRotatableEl.checked : true);
 
         // 최솟값(10mm) 및 숫자 여부만 체크 — 판재 상한 체크는 계산 시 수행
         let hasError = false;
@@ -333,7 +362,7 @@ class WoodcutterApp {
         }
 
         if (!height || height < 10) {
-            Validator.showError(partHeightEl, '부품 높이는 10mm 이상이어야 합니다');
+            Validator.showError(partHeightEl, '부품 길이는 10mm 이상이어야 합니다');
             hasError = true;
         } else {
             Validator.clearError(partHeightEl);
@@ -380,7 +409,7 @@ class WoodcutterApp {
             <tr>
                 <td contenteditable="true" data-index="${index}" data-field="dimensions" class="editable-cell">${part.width}×${part.height}</td>
                 <td contenteditable="true" data-index="${index}" data-field="qty" class="editable-cell">${part.qty}</td>
-                <td>${part.rotatable ? 'O' : 'X'}</td>
+                <td>${part.allowRotate && !this.state.boardSpec.considerGrain ? 'O' : 'X'}</td>
                 <td>
                     <button class="delete-btn" data-index="${index}">삭제</button>
                 </td>
@@ -548,38 +577,12 @@ class WoodcutterApp {
             const packer = new GuillotinePacker(packerW, packerH, settings.kerf);
 
             const considerGrain = this.state.boardSpec.considerGrain;
-            const boardW = trimEnabled ? effectiveBoardWidth : this.state.boardSpec.width;
-            const boardH = trimEnabled ? effectiveBoardHeight : this.state.boardSpec.height;
-            // 판재의 긴 축/짧은 축 판단
-            const boardLongIsX = true; // packerW가 항상 긴 축(길이방향)
-            const boardLong  = Math.max(boardW, boardH);
-            const boardShort = Math.min(boardW, boardH);
+            const items = PartOrientation.toItems(this.state.cuttingList, this.state.boardSpec);
 
-            const items = this.state.cuttingList.map(part => {
-                const effectiveAllowRotate = part.allowRotate && !considerGrain;
-                // 나무결 ON: 부품 긴값 → 판재 긴축, 부품 짧은값 → 판재 짧은축
-                const pw = considerGrain
-                    ? (boardLongIsX ? Math.max(part.width, part.height) : Math.min(part.width, part.height))
-                    : (!part.allowRotate ? part.height : part.width);
-                const ph = considerGrain
-                    ? (boardLongIsX ? Math.min(part.width, part.height) : Math.max(part.width, part.height))
-                    : (!part.allowRotate ? part.width : part.height);
-                return {
-                    id: part.id,
-                    width: pw,
-                    height: ph,
-                    qty: part.qty,
-                    allowRotate: effectiveAllowRotate
-                };
-            });
-
-            // 스왑 후 치수 기준 판재 초과 체크
-            const oversized = this.state.cuttingList.filter(part => {
-                if (considerGrain || !part.rotatable) {
-                    return part.width > boardW || part.height > boardH;
-                }
-                const normalFit = part.width <= boardW && part.height <= boardH;
-                const rotatedFit = part.height <= boardW && part.width <= boardH;
+            // Validate the exact orientation sent to the engine, including usable trim width.
+            const oversized = items.filter(part => {
+                const normalFit = part.width <= packerW && part.height <= packerH;
+                const rotatedFit = part.allowRotate && part.height <= packerW && part.width <= packerH;
                 return !normalFit && !rotatedFit;
             });
             if (oversized.length > 0) {
@@ -589,12 +592,15 @@ class WoodcutterApp {
                 return;
             }
 
-            // cutDirection: 'horizontal' | 'auto'
+            // UI "가로 절단 우선" deliberately preserves the existing auto path.
             const mode = settings.cutDirection || 'auto';
-            let result = packer.pack(items, mode);
+            let result = mode === 'vertical'
+                ? window.VerticalStripPacker.pack({ board: { width: packerW, height: packerH }, kerf: settings.kerf, items })
+                : packer.pack(items, mode);
 
-            // Apply only the explicitly approved CASE5 default layout.
-            if (window.RepeatedLayout?.approvedDefaultResult) {
+            // The approved customer drawing is the only current production
+            // adoption. Keep every other layout on the packer's baseline path.
+            if (mode !== 'vertical' && window.RepeatedLayout?.approvedDefaultResult) {
                 result = window.RepeatedLayout.approvedDefaultResult({
                     board: { width: packerW, height: packerH },
                     kerf: settings.kerf,
@@ -609,6 +615,27 @@ class WoodcutterApp {
                 });
             }
 
+            if (settings.automaticRefinement && window.AutomaticRefinement) {
+                result = AutomaticRefinement.select(result, {kerf:settings.kerf,
+                    cost:r=>CostCalculator.calculate(r.bins,settings).totalCuttingCost});
+            }
+            if (!settings.automaticRefinement && settings.groupIdenticalParts === true && window.IdenticalPartGrouping) {
+                const grouped = IdenticalPartGrouping.refine(result, {enabled:true, kerf:settings.kerf});
+                // Board count is the primary constraint for cross-board grouping.
+                // Cutting cost is recalculated below using this version's rules.
+                if (grouped !== result && grouped.bins.length <= result.bins.length &&
+                    (grouped.partGrouping?.crossBoardMoves > 0 ||
+                    CostCalculator.calculate(grouped.bins, settings).totalCuttingCost <=
+                    CostCalculator.calculate(result.bins, settings).totalCuttingCost)) result = grouped;
+            }
+
+            if (!settings.automaticRefinement && settings.unifyPatterns === true && window.IdenticalPartGrouping) {
+                const uniform = IdenticalPartGrouping.normalizePatterns(result, {enabled:true,kerf:settings.kerf});
+                if (uniform !== result && CostCalculator.calculate(uniform.bins,settings).totalCuttingCost <=
+                    CostCalculator.calculate(result.bins,settings).totalCuttingCost) result = uniform;
+            }
+
+            PartOrientation.assertResult(items, result);
             if (result.unplaced.length > 0) {
                 alert(`${result.unplaced.length}개의 부품을 배치할 수 없습니다. 부품 크기를 확인하세요.`);
             }
@@ -624,6 +651,10 @@ class WoodcutterApp {
 
             const costInfo = CostCalculator.calculate(result.bins, settings);
             this.state.setCostInfo(costInfo);
+            this.calculatedResult = result;
+            this.calculatedState = structuredClone({ boardSpec: this.state.boardSpec, costInfo,
+                result, labeledGroups, settings });
+            this.calculatedInputKey = this.currentInputKey();
 
             this.displayResults();
 
@@ -650,6 +681,7 @@ class WoodcutterApp {
      * 결과 표시
      */
     displayResults() {
+        this.updateCutPriorityStatus();
         const emptyState = document.getElementById('emptyState');
         const canvasControlsTop = document.getElementById('canvasControlsTop');
         const canvasScrollContainer = document.getElementById('canvasScrollContainer');
@@ -666,6 +698,52 @@ class WoodcutterApp {
 
         // 그룹별 대표 도면 렌더링 (display:block 반영 후 다음 프레임에 실행)
         requestAnimationFrame(() => this.renderGroupCanvases());
+    }
+
+    cutPriorityLabel(result = this.state.result) {
+        const priority = result?.mode === 'vertical' ? '세로 절단 우선' : '가로 절단 우선';
+        return priority + (result?.partGrouping?.applied ? ' · 부품 모음 적용' : '') +
+            (result?.patternNormalization?.applied ? ' · 패턴 통일' : '');
+    }
+
+    currentInputKey() {
+        return JSON.stringify({
+            width: Number(document.getElementById('boardWidth')?.value),
+            height: Number(document.getElementById('boardHeight')?.value),
+            thickness: Number(document.getElementById('boardThickness')?.value),
+            grain: this.state.boardSpec.considerGrain,
+            grainRule: this.state.boardSpec.grainRule,
+            parts: this.state.cuttingList,
+            settings: SettingsManager.readFromUI()
+        });
+    }
+
+    updateCutPriorityStatus() {
+        const status = document.getElementById('cutPriorityStatus');
+        const summary = document.getElementById('resultCutPriority');
+        const inputHint = document.getElementById('cutPriorityPending');
+        const result = this.state.result;
+        if (inputHint) inputHint.hidden = true;
+        if (summary) summary.textContent = result ? this.cutPriorityLabel(result) : '';
+        if (!status) return;
+        status.hidden = !result;
+        if (!result) return;
+        const selected = document.getElementById('cutDirection')?.value === 'vertical' ? 'vertical' : 'auto';
+        const calculated = result.mode === 'vertical' ? 'vertical' : 'auto';
+        const pending = selected !== calculated || (this.calculatedResult === result &&
+            this.calculatedInputKey !== this.currentInputKey());
+        if (inputHint) inputHint.textContent = '입력이나 설정이 변경되었습니다. 최적화 계산을 다시 실행하세요.';
+        if (inputHint) inputHint.hidden = !pending;
+        status.dataset.pending = String(pending);
+        status.textContent = pending
+            ? `입력이나 설정이 변경되었습니다. 재계산이 필요합니다. 현재 도면·PDF: ${this.cutPriorityLabel(result)}`
+            : `현재 도면: ${this.cutPriorityLabel(result)}`;
+        if (!pending && this.calculatedState?.settings.groupIdenticalParts && !result.partGrouping?.applied) {
+            status.textContent += ' · 부품 모음: 이동 조건에 맞는 부품이 없어 기존 배치 유지';
+        }
+        if (!pending && this.calculatedState?.settings.unifyPatterns && !result.patternNormalization?.applied) {
+            status.textContent += ' · 패턴 통일: 적용할 변경 없음';
+        }
     }
 
     /**
@@ -756,7 +834,7 @@ class WoodcutterApp {
 
         bins.forEach(bin => {
             const pattern = bin.placed
-                .map(p => `${p.x},${p.y},${p.width},${p.height}`)
+                .map(p => `${p.x},${p.y},${p.width},${p.height},${LabelingEngine.findLabelForPart(p, this.state.labeledGroups || [])}`)
                 .sort()
                 .join('|');
 
@@ -776,14 +854,9 @@ class WoodcutterApp {
      * 캔버스에 bin 그리기
      */
     drawBinToCanvas(canvas, bin, labeledGroups) {
-        const trimSettings = window.SettingsManager ? SettingsManager.readFromUI() : {};
-        const trimEnabled = trimSettings.enableTrim === true;
-        const trimMargin = trimEnabled ? (parseFloat(trimSettings.trimMargin) || 0) : 0;
-        const boardWidth = this.state.boardSpec.width - (trimEnabled ? 14 : 0);
-        const boardHeight = this.state.boardSpec.height;
         const isPortraitBoard = false;
-        const renderBoardWidth = boardHeight;  // 길이 = 가로
-        const renderBoardHeight = boardWidth;  // 폭 = 세로
+        const renderBoardWidth = bin.width;
+        const renderBoardHeight = bin.height;
         const maxWidth = 700;
         const padding = 50;
         const drawScale = (maxWidth - padding * 2) / renderBoardWidth;
@@ -810,7 +883,7 @@ class WoodcutterApp {
         // === 장별 부품 개수 계산 ===
         const partCounts = {};
         bin.placed.forEach((part) => {
-            const label = LabelingEngine.findLabel(part.width, part.height, labeledGroups);
+            const label = LabelingEngine.findLabelForPart(part, labeledGroups);
             if (!partCounts[label]) {
                 partCounts[label] = 0;
             }
@@ -822,7 +895,7 @@ class WoodcutterApp {
         // === 라벨별 첫 번째 부품 찾기 (치수 표시용) ===
         const labelFirstPart = {};
         bin.placed.forEach((part, index) => {
-            const label = LabelingEngine.findLabel(part.width, part.height, labeledGroups);
+            const label = LabelingEngine.findLabelForPart(part, labeledGroups);
             if (labelFirstPart[label] === undefined) {
                 labelFirstPart[label] = index;  // 첫 번째만 기록
             }
@@ -899,7 +972,7 @@ class WoodcutterApp {
             const y = padding + part.y * drawScale;
             const w = part.width * drawScale;
             const h = part.height * drawScale;
-            const label = LabelingEngine.findLabel(part.width, part.height, labeledGroups);
+            const label = LabelingEngine.findLabelForPart(part, labeledGroups);
 
             // 부품 배경
             const PART_COLORS = [
@@ -1031,12 +1104,12 @@ class WoodcutterApp {
         ctx.fillStyle = '#333';
         ctx.font = '14px "Noto Sans KR", sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`${boardHeight} mm`, padding + (renderBoardWidth * drawScale) / 2, padding - 20);
+        ctx.fillText(`${renderBoardWidth} mm`, padding + (renderBoardWidth * drawScale) / 2, padding - 20);
 
         ctx.save();
         ctx.translate(padding - 25, padding + (renderBoardHeight * drawScale) / 2);
         ctx.rotate(-Math.PI / 2);
-        ctx.fillText(`${boardWidth} mm`, 0, 0);
+        ctx.fillText(`${renderBoardHeight} mm`, 0, 0);
         ctx.restore();
 
         // Presentation only. The engine result, cutting count and cost are unchanged.
@@ -1172,8 +1245,10 @@ class WoodcutterApp {
      * PDF Blob 생성 (모든 페이지 Canvas 이미지 방식)
      */
     async generatePdfBlob() {
-        const stateSnapshot = structuredClone({ boardSpec: this.state.boardSpec, costInfo: this.state.costInfo,
-            result: this.state.result, labeledGroups: this.state.labeledGroups, settings: this.state.settings });
+        const exportSource = this.calculatedResult === this.state.result && this.calculatedState
+            ? this.calculatedState : this.state;
+        const stateSnapshot = structuredClone({ boardSpec: exportSource.boardSpec, costInfo: exportSource.costInfo,
+            result: exportSource.result, labeledGroups: exportSource.labeledGroups, settings: exportSource.settings });
         const groups = this.groupCanvases.map(({ canvas, bin, count }) => {
             const copy = document.createElement('canvas'); copy.width = canvas.width; copy.height = canvas.height;
             copy.getContext('2d').drawImage(canvas, 0, 0); return { canvas: copy, bin: structuredClone(bin), count };
@@ -1225,7 +1300,8 @@ class WoodcutterApp {
         ctx.font = '18px "Noto Sans KR", sans-serif';
         ctx.fillText(`크기: ${exportState.boardSpec.width} × ${exportState.boardSpec.height} mm`, margin + 20, y);
         y += 30;
-        ctx.fillText(`결 고려: ${exportState.boardSpec.considerGrain ? '예' : '아니오'}`, margin + 20, y);
+        ctx.fillText(`결 고려: ${exportState.boardSpec.considerGrain ? (exportState.boardSpec.grainRule === PartOrientation.LEGACY ? '예 (긴 변)' : '예 (입력 길이)') : '아니오'}`, margin + 20, y);
+        ctx.fillText(`절단 방식: ${this.cutPriorityLabel(exportState.result)}`, margin + 240, y);
         y += 50;
 
         // 최적화 결과
@@ -1352,13 +1428,13 @@ class WoodcutterApp {
         const title = count > 1 ? `패턴 ${index + 1} (${count}장 동일)` : `패턴 ${index + 1}`;
         const settings = exportState.settings || { enableTrim: true };
         const trimStatus = settings.enableTrim ? '전단(O)' : '전단(X)';
-        const cutInfo = `절단: ${bin.cuttingCount}회  |  ${trimStatus}`;
+        const cutInfo = `절단: ${bin.cuttingCount}회  |  ${trimStatus}  |  ${this.cutPriorityLabel(exportState.result)}`;
 
         // 부품 사이즈와 개수 계산
         const labeledGroups = exportState.labeledGroups || [];
         const partCounts = {};
         bin.placed.forEach(part => {
-            const label = window.LabelingEngine ? LabelingEngine.findLabel(part.width, part.height, labeledGroups) : '?';
+            const label = window.LabelingEngine ? LabelingEngine.findLabelForPart(part, labeledGroups) : '?';
             if (!partCounts[label]) {
                 partCounts[label] = { width: part.width, height: part.height, count: 0 };
             }
@@ -1461,49 +1537,68 @@ class WoodcutterApp {
         if (confirm('새 프로젝트를 시작하시겠습니까?\n현재 작업 내용이 삭제됩니다.')) {
             this.state.reset();
 
+            this.partRotationPreference = true;
+            this.syncGrainControls();
+
             document.getElementById('boardWidth').value = '1220';
             document.getElementById('boardHeight').value = '2440';
             document.getElementById('boardThickness').value = '18';
             document.getElementById('considerGrain').checked = false;
             document.getElementById('enableTrim').checked = false;
+            document.getElementById('cutDirection').value = 'auto';
+            document.getElementById('priorityHorizontal').checked = true;
+            document.getElementById('priorityVertical').checked = false;
+            const grouping = document.getElementById('groupIdenticalParts');
+            if (grouping) grouping.checked = false;
+            const unify = document.getElementById('unifyPatterns');
+            if (unify) unify.checked = false;
+            this.saveSettings();
             this.updateTrimWarning();
 
             this.renderPartsList();
 
-            // UI 초기화
-            const emptyState = document.getElementById('emptyState');
-            const canvasControlsTop = document.getElementById('canvasControlsTop');
-            const canvasScrollContainer = document.getElementById('canvasScrollContainer');
-
-            if (emptyState) emptyState.style.display = 'block';
-            if (canvasControlsTop) canvasControlsTop.style.display = 'none';
-            if (canvasScrollContainer) {
-                canvasScrollContainer.style.display = 'none';
-                canvasScrollContainer.innerHTML = '';
-            }
-
-            // 결과 초기화
-            document.getElementById('totalPanelCount').textContent = '-';
-            document.getElementById('totalCutCount').textContent = '-';
-            document.getElementById('totalCuttingCost').textContent = '-';
-            const materialUsageRate = document.getElementById('materialUsageRate');
-            if (materialUsageRate) materialUsageRate.textContent = '-';
-
-            const labelGroupsList = document.getElementById('labelGroupsList');
-            if (labelGroupsList) {
-                labelGroupsList.innerHTML = '<p class="empty-state-text text-center" style="padding: 20px;">계산을 실행하면 결과가 표시됩니다</p>';
-            }
-
-            const boardNavSection = document.getElementById('boardNavSection');
-            if (boardNavSection) boardNavSection.classList.add('hidden');
-
-            this.groupCanvases = [];
-
-            const calculateBtn = document.getElementById('calculateBtn');
-            if (calculateBtn) calculateBtn.disabled = false;
+            this.clearResultDisplay();
 
             // New project started
         }
+    }
+
+    clearResultDisplay() {
+        // UI 초기화
+        const emptyState = document.getElementById('emptyState');
+        const canvasControlsTop = document.getElementById('canvasControlsTop');
+        const canvasScrollContainer = document.getElementById('canvasScrollContainer');
+
+        if (emptyState) emptyState.style.display = 'block';
+        if (canvasControlsTop) canvasControlsTop.style.display = 'none';
+        if (canvasScrollContainer) {
+            canvasScrollContainer.style.display = 'none';
+            canvasScrollContainer.innerHTML = '';
+        }
+
+        // 결과 초기화
+        ['totalPanelCount','totalCutCount','totalCuttingCost'].forEach(id => {
+            const element = document.getElementById(id); if (element) element.textContent = '-';
+        });
+        const materialUsageRate = document.getElementById('materialUsageRate');
+        if (materialUsageRate) materialUsageRate.textContent = '-';
+
+        const labelGroupsList = document.getElementById('labelGroupsList');
+        if (labelGroupsList) {
+            labelGroupsList.innerHTML = '<p class="empty-state-text text-center" style="padding: 20px;">계산을 실행하면 결과가 표시됩니다</p>';
+        }
+
+        const boardNavSection = document.getElementById('boardNavSection');
+        if (boardNavSection) boardNavSection.classList.add('hidden');
+
+        this.groupCanvases = [];
+
+        const calculateBtn = document.getElementById('calculateBtn');
+        if (calculateBtn) calculateBtn.disabled = false;
+
+        this.calculatedState = null;
+        this.calculatedResult = null;
+        this.updateCutPriorityStatus();
     }
 
     /**
@@ -1515,8 +1610,9 @@ class WoodcutterApp {
             boardHeight: document.getElementById('boardHeight').value,
             boardThickness: document.getElementById('boardThickness').value,
             considerGrain: document.getElementById('considerGrain').checked,
+            grainRule: this.state.boardSpec.grainRule || PartOrientation.INPUT_LENGTH,
             parts: this.state.cuttingList,
-            settings: this.state.settings
+            settings: SettingsManager.readFromUI()
         };
 
         const json = JSON.stringify(project, null, 2);
@@ -1542,6 +1638,13 @@ class WoodcutterApp {
             reader.onload = (event) => {
                 try {
                     const project = JSON.parse(event.target.result);
+                    const grainRule = project.grainRule ?? PartOrientation.LEGACY;
+                    if (![PartOrientation.INPUT_LENGTH, PartOrientation.LEGACY].includes(grainRule)) {
+                        throw new Error('지원하지 않는 결 방향 규칙입니다.');
+                    }
+                    this.state.reset();
+                    this.clearResultDisplay();
+                    this.partRotationPreference = true;
 
                     document.getElementById('boardWidth').value = project.boardWidth;
                     document.getElementById('boardHeight').value = project.boardHeight;
@@ -1551,20 +1654,24 @@ class WoodcutterApp {
                     this.state.updateBoardSpec({
                         width: parseFloat(project.boardWidth),
                         height: parseFloat(project.boardHeight),
-                        considerGrain: project.considerGrain
+                        considerGrain: project.considerGrain === true,
+                        grainRule
                     });
 
                     this.state.cuttingList = project.parts || [];
                     this.state.update('cuttingList', this.state.cuttingList);
 
-                    if (project.settings) {
-                        this.state.updateSettings(project.settings);
+                    {
+                        const loadedSettings = { ...SettingsManager.DEFAULT_SETTINGS, ...project.settings };
                         if (window.SettingsManager) {
-                            SettingsManager.applyToUI(project.settings);
+                            SettingsManager.applyToUI(loadedSettings);
+                            this.state.updateSettings(SettingsManager.readFromUI());
                             this.updateTrimWarning();
                         }
                     }
 
+                    this.syncGrainControls();
+                    this.renderPartsList();
                     this.updateCutPriceDisplay();
                     alert('프로젝트를 불러왔습니다!');
 
@@ -1573,7 +1680,7 @@ class WoodcutterApp {
                     alert('파일을 읽는 중 오류가 발생했습니다.');
                 }
             };
-            reader.readAsText(file);
+            if (file) reader.readAsText(file);
         };
         input.click();
     }

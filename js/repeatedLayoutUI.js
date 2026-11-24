@@ -9,14 +9,8 @@
         const firstBin = state.result.bins[0];
         if (!(Number.isFinite(firstBin.width) && firstBin.width > 0 &&
             Number.isFinite(firstBin.height) && firstBin.height > 0)) return null;
-        const items = cuttingList.map(part => ({
-            id: part.id, qty: part.qty,
-            width: spec.considerGrain ? Math.max(part.width, part.height)
-                : (!part.allowRotate ? part.height : part.width),
-            height: spec.considerGrain ? Math.min(part.width, part.height)
-                : (!part.allowRotate ? part.width : part.height),
-            allowRotate: !!part.allowRotate && !spec.considerGrain
-        }));
+        const orientation = root.PartOrientation || (typeof require === 'function' ? require('./partOrientation') : null);
+        const items = orientation.toItems(cuttingList, spec);
         return structuredClone({ input: {
             board: { width: firstBin.width, height: firstBin.height },
             kerf: settings.kerf, items, baseline: state.result

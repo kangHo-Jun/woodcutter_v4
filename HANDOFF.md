@@ -1,4 +1,50 @@
+## 2026-11-24 — V4 자동 선택 및 절단 우선 배포 준비 완료
+
+- 사용자 명시 승인으로 Test 검증된 자동 모음/패턴 통일 기능을 V4 이식. 기존 로컬 세로 우선/입력 길이 결 규칙도 함께 배포 범위. V4 기존 모바일 UI, 전단 fixed14, 전단 이벤트, trimMargin 기본5/검증방식, 기존 원가와 CSS 보존. V10 통째 복사 안 함.
+- 실제 작업 파일 백업 ../woodcutter_Test/output/v4-auto-rollout/before 및 태그 before-auto-rollout-20261124. 실제 앱 자동 통일/UI 존재 검사 RED 후 이식 GREEN. V4 하네스178/178 PASS(기존11자동 고정 baseline, 방향/결/전단/수량/물리절단/비용/저장스냅샷, UI·원가·엔진 해시보존 포함).
+- 최근10부품:937×6054/985×5451/730×5452/420×7502/485×7501,1220×2440×18,kerf4.2,결OFF/전단OFF/회전ON. 실제390px 모바일 세로 계산2장/16회24000원,가로overflow없음,도면/결과탭 정상,PDF mobile.pdf 저장.
+- 원격 origin/main 4c2c65d의 CNAME만 추가된 이력을 --ff-only 통합. cut.daesan.ai/HTTPS설정 그대로 보존. 다음: main 배포 후 공개 사이트 리소스·실제 계산 확인.
+- 기존 특정 결ON 입력의 절단기록 오류는 자동 후보 기능과 별개로 미수정. 원본 보존 및 새 후보 검증 정책 유지.
+
 # v4 인계
+
+## 2026-10-21 09:18 KST — cut.daesan.ai HTTPS 완료
+
+- GitHub인증서approved(만료2027-01-19),실제HTTPS검증200확인후https_enforced=true활성화완료.
+- https://cut.daesan.ai/ 200,HTTP301→HTTPS,기존GitHub주소최종HTTPS200,상대JS/CSS15개HTTPS200검증완료. 운영코드그대로·로컬미커밋기능미배포.
+- 원격CNAME최종커밋4c2c65d는로컬통합아직안함. 다음개발푸시전fetch/정상fast-forward검토하여CNAME유지. 도메인HTTPS관련남은작업없음. 예약된후속점검은작업완료로해제처리.
+
+## 2026-10-21 — 승인된 도메인 재등록 완료
+
+- 사용자의명시승인후GitHub Pages도메인제거→cut.daesan.ai즉시재등록모두성공. 최종원격main4c2c65dc9cc29a45ae816301b39ba08089bddbf3,Pages built/error null. 운영21ca83b와최종차이는CNAME1줄뿐. 로컬미커밋기능미배포/원격커밋로컬통합미실행.
+- HTTP200·외부DNS정상. GitHub certificate=null/https_enforced=false및HTTPS호스트불일치유지. 인증서발급은아직완료되지않음. 다음: 발급확인→HTTPS강제→최종리디렉션검증. 자동모니터미등록. 상위HANDOFF참조.
+
+## 2026-10-21 — cut.daesan.ai DNS 연결 완료, HTTPS 발급 대기
+
+- Aside에서 cut CNAME=kangho-jun.github.io 추가 성공. 권한NS4곳/Google/Cloudflare 반영 확인. HTTP200, 기존GitHub301→새주소 확인.
+- 공개 index와JS/CSS15개가 운영21ca83b와바이트동일. 실제브라우저500×400 1개 계산1장/2회/3000원 및v4표시 확인. 기존미커밋기능 보존/미배포.
+- certificate=null, HTTPS인증서호스트불일치. https_enforced 활성화 시도는 자동승인검토가 인증서미준비로 거부하여 미실행. 인증서검증성공 후 강제설정·최종검증 필요. 상위HANDOFF에 상세.
+- 공식인증서복구인도메인제거·재등록도자동승인검토가일시접속중단가능성과구체적사용자승인부재로거부하여미실행. 현재cut연결유지. 사용자에게발급대기/재등록승인선택질문중.
+
+## 2026-10-21 — cut.daesan.ai 연결 진행 중
+
+- 사용자가 V4 연결을 최종 지정. GitHub Pages custom domain=cut.daesan.ai 등록, 원격 main에 CNAME 단독 추가 커밋3817198fa5af877d3fa8bedba5870453428ab1ff 자동 생성됨. 로컬 미배포 기능/작업트리 보존, 원격 커밋 로컬 통합은 미실행.
+- 카페24 Aside 로그인 확인. DNS 추가 팝업에서 다른 작업(cadalog→Vercel) 입력이 나타나 충돌 방지를 위해 DNS 조작 중단 및 사용자 확인 대기. cut은 아직 기존 와일드카드로 daesan.ai를 가리킴.
+- 다음: cut CNAME=kangho-jun.github.io 추가 → DNS 반영·인증서 발급 확인 → HTTPS 강제 → V4 공개 리소스/화면 검증. 현재 https_certificate=null/https_enforced=false로 연결 완료 아님. 상세는 상위 HANDOFF 참조.
+
+## 2026-10-19 — V4·V10 절단 우선/입력 길이 결 규칙 이식 완료
+
+- 사용자 이식 지시 및 각 버전 UI 차이 보존 요구에 따라 로컬 V4/V10에 이식. 수정전 태그 before-priority-grain-20261019(V4 21ca83b, V10 d2ea03d). Test의 미커밋 변경은 보존했다.
+- 추가: partOrientation.js, verticalStripPacker.js, cut-priority.css. main/state/settings/packer/labeling/repeatedLayout/UI 연동 이식. 가로 기본 auto/승인 CASE5 보존, 세로 선택 재계산, 폭·길이 입력/결 안내, 원본 라벨, 설정 시점 PDF, 저장 grainRule/과거자료호환/초기화 및 회전의도 보존 적용.
+- UI 보존: index에 승인된 fieldset/status/hint·폭길이 명칭·스크립트만 삽입. 해당 변경을 제거하면 수정전 index와 동일한지 자동 검사 PASS. 기존 responsive-style.css/costCalculator.js는 각각 바이트 동일. V4 고정전단14mm·전단이벤트guard 유지; V10 전단/원가필드 유지. 별도 구형 index-mobile/index-pc-old 미수정.
+- TDD: 수정전 각버전11개 PASS, 고객 새방향 계약 및 신규UI 존재 RED 후 이식 GREEN. 각버전 신규·회귀51/51 PASS. Test 공통152/152 및 regression8/8 PASS. 기존 fixture/baseline 수정 없음.
+- 실제 ego-browser에서 각버전11개 전체 배치·절단·잔재·요금 baseline 일치, 각사례 세로계산(물리/순차절단검증)→가로복귀 일치. 각각11PDF 다운로드 정상, 총24PDF(고객사례포함) 10MB미만. CASE10 유효폭 V4=1056, V10=1043.6 보존.
+- 고객CASE12 직접폼 입력: 결ON세로1장15개, A850×546/B850×260/C400×396/D364×396,20회30000원. PC/390×844모바일 입력·도면/계산후탭 전환 PASS. 결토글복귀/새프로젝트/저장JSON/PDF미계산설정혼합방지 PASS. 고객PDF2쪽·전단사례PDF 렌더 육안 확인. 브라우저error/unhandledrejection 없음.
+- 파일 복원은 실제 FileReader로 확인: 버전없는700폭×500길이5개는legacy700×500 1장, v2파일은500×700 2장. 기존UI에불러오기버튼이없어 임시 브라우저검증버튼으로기존handler호출(생산HTML추가없음); 직접evaluate파일선택은사용자활성화없어timeout,실제클릭경로는PASS. 검증용브라우저작업공간정리완료.
+- V10 쭉절단 비용은 원래 Test/V4와 다름. 수정전태그 실제실행으로120폭8개12/18/24T=8000/12000/16000원,80폭12개18T=18000원확인. 이기준을보존했으며원가공식을Test로덮어쓰지않음.
+- 독립리뷰: 두버전51/51 재실행 및코드검토차단사항없음. V4혼합입력120개중1개기존B절단선기록오류는수정전과bins동일확인(새회귀아님). 전역최적성보장/기존별도엔진기록오류수정은이번범위아님.
+- 증거·재현: woodcutter_Test/output/rollout-priority-grain/ (browser-*.mjs, 각버전eleven-results.json/customer*.png·pdf/load-check.json, Node로그). 공용harness/grain-direction는 WOOD_TARGET=v4/v10으로실행. 계획 docs/superpowers/plans/2026-10-19-v4-v10-priority-grain.md.
+- 이식은 로컬작업본에완료. 이번커밋/푸시/공개배포없음. 다음: 사용자로컬확인 후 요청에따라버전별커밋·푸시·Pages검증. 로컬URL http://127.0.0.1:8894/woodcutter_v4/ 및 /woodcutter_v10/ .
 
 ## 2026-10-13 — 계산 멈춤 방어 이식 및 푸시 승인
 

@@ -121,7 +121,7 @@
 
         const expectedRaw = ['260x350x8', '260x450x8'];
         const actualRaw = cuttingList.map(part => {
-            if (!part || part.allowRotate !== false) return '';
+            if (!part || (boardSpec.grainRule !== 'input-length-v2' && part.allowRotate !== false)) return '';
             return `${part.width}x${part.height}x${part.qty}`;
         }).sort();
         if (actualRaw.some((value, index) => value !== expectedRaw[index])) return false;

@@ -14,6 +14,8 @@ class SettingsManager {
         enableTrim: false,
         trimMargin: 5,
         cutDirection: 'auto',
+        groupIdenticalParts: false,
+        unifyPatterns: false,
         cutMethod: 'guillotine',
         optimizationPriority: 'material',
         cutPrice: 1500,
@@ -64,6 +66,8 @@ class SettingsManager {
      */
     static validateSettings(settings) {
         const validated = {};
+        validated.unifyPatterns = settings.unifyPatterns === true;
+        validated.groupIdenticalParts = settings.groupIdenticalParts === true;
 
         // 톱날 두께 - 항상 기본값 4.2 사용 (페이지 새로고침시 초기화)
         validated.kerf = this.DEFAULT_SETTINGS.kerf;
@@ -149,13 +153,24 @@ class SettingsManager {
             enableWatermark: document.getElementById('enableWatermark')
         };
 
+        const unify = document.getElementById('unifyPatterns');
+        if (unify) unify.checked = settings.unifyPatterns === true;
+        const groupParts = document.getElementById('groupIdenticalParts');
+        if (groupParts) groupParts.checked = settings.groupIdenticalParts === true;
         if (elements.kerf) elements.kerf.value = settings.kerf;
         if (elements.enableTrim) elements.enableTrim.checked = settings.enableTrim;
         if (elements.trimMargin) {
             elements.trimMargin.value = settings.trimMargin;
             elements.trimMargin.disabled = !settings.enableTrim;
         }
-        if (elements.cutDirection) elements.cutDirection.value = settings.cutDirection;
+        // This UI's default is the existing auto calculation, not the old
+        // internal horizontal algorithm. Historical/missing values stay default.
+        const direction = settings.cutDirection === 'vertical' ? 'vertical' : 'auto';
+        if (elements.cutDirection) elements.cutDirection.value = direction;
+        const horizontalChoice = document.getElementById('priorityHorizontal');
+        const verticalChoice = document.getElementById('priorityVertical');
+        if (horizontalChoice) horizontalChoice.checked = direction === 'auto';
+        if (verticalChoice) verticalChoice.checked = direction === 'vertical';
         if (elements.cutMethod) elements.cutMethod.value = settings.cutMethod;
         if (elements.optimizationPriority) elements.optimizationPriority.value = settings.optimizationPriority;
         if (elements.enableWatermark) elements.enableWatermark.checked = settings.enableWatermark;
@@ -182,6 +197,9 @@ class SettingsManager {
         const cutPrice = window.CostCalculator ? window.CostCalculator.getCutPriceByThickness(thickness) : 1500;
 
         return {
+            automaticRefinement: !document.getElementById('groupIdenticalParts') && !document.getElementById('unifyPatterns'),
+            unifyPatterns: document.getElementById('unifyPatterns')?.checked === true,
+            groupIdenticalParts: document.getElementById('groupIdenticalParts')?.checked === true,
             kerf: elements.kerf ? parseFloat(elements.kerf.value) : this.DEFAULT_SETTINGS.kerf,
             enableTrim: elements.enableTrim ? elements.enableTrim.checked : this.DEFAULT_SETTINGS.enableTrim,
             trimMargin: elements.trimMargin ? parseFloat(elements.trimMargin.value) : this.DEFAULT_SETTINGS.trimMargin,

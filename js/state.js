@@ -8,7 +8,8 @@ class AppState {
         this.boardSpec = {
             width: 1220,
             height: 2440,
-            considerGrain: false
+            considerGrain: false,
+            grainRule: 'input-length-v2'
         };
 
         this.cuttingList = [];
@@ -17,6 +18,8 @@ class AppState {
             kerf: 4.2,
             enableTrim: true,
             trimMargin: 5,
+            groupIdenticalParts: false,
+            unifyPatterns: false,
             cutDirection: 'auto', // 'horizontal' | 'vertical' | 'auto'
             cutMethod: 'guillotine', // 'guillotine' | 'free'
             optimizationPriority: 'material', // 'material' | 'speed' | 'balance'
@@ -130,6 +133,7 @@ class AppState {
      * 상태 초기화
      */
     reset() {
+        this.updateBoardSpec({ width: 1220, height: 2440, considerGrain: false, grainRule: 'input-length-v2' });
         this.cuttingList = [];
         this.result = null;
         this.costInfo = null;

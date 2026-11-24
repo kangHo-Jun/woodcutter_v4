@@ -241,12 +241,13 @@ class GuillotinePacker {
         if (!Array.isArray(items) || items.length < 2) return null;
 
         const groups = new Map();
-        items.forEach(item => {
+        items.forEach((item, sourceIndex) => {
             if (!item || item.id == null) return;
             const key = String(item.id);
             if (!groups.has(key)) groups.set(key, []);
             groups.get(key).push({
                 ...item,
+                sourceIndex,
                 allowRotate: item.allowRotate !== false
             });
         });
@@ -266,6 +267,7 @@ class GuillotinePacker {
 
         const soloResults = groupedEntries.map(entry => ({
             key: entry.key,
+            items: entry.items,
             result: this.packAdaptiveAuto(entry.items, { disableGroupSplit: true })
         }));
 
@@ -281,7 +283,13 @@ class GuillotinePacker {
             return null;
         }
 
-        const bins = soloResults.flatMap(({ result }) => result.bins.map(bin => this.cloneBin(bin)));
+        const bins = soloResults.flatMap(({ result, items: groupItems }) => result.bins.map(bin => {
+            const cloned = this.cloneBin(bin);
+            cloned.placed = cloned.placed.map(part => ({
+                ...part, originalId: groupItems[part.originalId].sourceIndex
+            }));
+            return cloned;
+        }));
         return {
             bins,
             unplaced: [],
@@ -562,7 +570,7 @@ class GuillotinePacker {
             height: part.height,
             qty: part.qty,
             allowRotate: part.allowRotate !== false
-        })), false);
+        })), false).map(part => ({ ...part, originalId: parts[part.originalId].sourceIndex }));
 
         const createCutDetail = (axis, pos, spanStart, spanEnd, sourceRect) => helper.createCutDetail(axis, pos, spanStart, spanEnd, sourceRect);
 
@@ -664,13 +672,14 @@ class GuillotinePacker {
 
         skinnyCandidates.forEach(entry => {
             const remainingParts = items
-                .filter((_, index) => index !== entry.index)
-                .map(part => ({
+                .map((part, sourceIndex) => ({
                     width: part.width,
                     height: part.height,
                     qty: part.qty,
+                    sourceIndex,
                     allowRotate: part.allowRotate !== false
-                }));
+                }))
+                .filter(part => part.sourceIndex !== entry.index);
 
             corners.forEach(corner => {
                 const cornerLayout = buildCornerLayout(entry, corner);
@@ -2821,26 +2830,11 @@ class AdaptiveGuillotineBin {
         const startedAt = Date.now();
         const helper = new AdaptiveGuillotineBin(boardW, boardH, this.kerf);
 
-        const normalizeParts = () => {
-            const boardLongIsX = boardW >= boardH;
-            return parts.map(part => {
-                const allowRotate = !!(part.allowRotate && !considerGrain);
-                const width = considerGrain
-                    ? (boardLongIsX ? Math.max(part.width, part.height) : Math.min(part.width, part.height))
-                    : part.width;
-                const height = considerGrain
-                    ? (boardLongIsX ? Math.min(part.width, part.height) : Math.max(part.width, part.height))
-                    : part.height;
-                return {
-                    width,
-                    height,
-                    qty: part.qty,
-                    allowRotate
-                };
-            });
-        };
-
-        const normalizedParts = normalizeParts();
+        // Callers already mapped input width/length to board X/Y. Grain only
+        // forbids rotation here; re-sorting sides would destroy that contract.
+        const normalizedParts = parts.map(part => ({
+            ...part, allowRotate: !!part.allowRotate && !considerGrain
+        }));
         const expandedItems = this.expandItems(normalizedParts, false);
         const baseline = this.packAdaptiveBase(expandedItems);
         const baselineResult = {
